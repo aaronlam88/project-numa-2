@@ -25,7 +25,12 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import pipe.common.Common.Failure;
 import pipe.common.Common.Request;
 import pipe.common.Common.Response;
+import pipe.common.Common.ResponseStatus;
 import routing.Pipe.CommandMessage;
+import com.lmax.disruptor.EventFactory;
+import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.RingBuffer;
+
 /**
  * The message handler processes json messages that are delimited by a 'newline'
  * 
@@ -37,124 +42,13 @@ import routing.Pipe.CommandMessage;
 public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> {
 	protected static Logger logger = LoggerFactory.getLogger("cmd");
 	protected RoutingConf conf;
-	//TODO add a queue for CommandMessage buffer
-	
-	public CommandHandler(RoutingConf conf) {
+	protected RingBuffer<CommandMessageEvent> ringBuffer;
+
+	public CommandHandler(RoutingConf conf, RingBuffer<CommandMessageEvent> ringBuffer) {
+		this.ringBuffer = ringBuffer;
 		if (conf != null) {
 			this.conf = conf;
-			//TODO spawn a thread of HandleMessage which consumes commandMessage queue
 		}
-	}
-
-	/**
-	 * override this method to provide processing behavior. This implementation
-	 * mimics the routing we see in annotating classes to support a RESTful-like
-	 * behavior (e.g., jax-rs).
-	 * 
-	 * @param msg
-	 */
-	public void handleMessage(CommandMessage msg, Channel channel) {
-		if (msg == null) {
-			System.out.println("ERROR: Unexpected content - " + msg);
-			logger.error("ERROR: Unexpected content - " + msg);
-			return;
-		}
-
-		PrintUtil.printCommand(msg);
-
-		try {
-			if (msg.hasPing()) {
-				logger.info("ping from " + msg.getHeader().getNodeId());
-			} else if (msg.hasMessage()) {
-				logger.info(msg.getMessage());
-			} else if(msg.hasReq()) {
-				Request req = msg.getReq();
-				switch (req.getRequestType()) {
-				case READFILE:
-					if(req.hasRrb()){
-						if(req.getRrb().hasChunkId()){
-							//TODO send the chunk in response
-							//TODO send failure chunk not found
-						}else{
-							//TODO send file and chunk locations from log in response
-							//TODO send failure file not found
-						}
-					}else{
-						//TODO send failure - Invalid read request
-					}
-					break;
-				case WRITEFILE:
-						if(req.hasRwb()){
-							if(req.getRwb().hasChunk()){
-								//TODO save chunk data on local fs
-							}else{
-								//TODO send failure message - no chunk data
-							}
-						}else{
-							//TODO send failure message - Invalid write request
-						}
-					break;
-//				case DELETEFILE:
-//					
-//					break;
-//				case UPDATEFILE:
-//					
-//					break;
-				default:
-					break;
-				}
-				
-			} else if(msg.hasResp()){
-				Response res = msg.getResp();
-				switch (res.getResponseType()) {
-				case READFILE:
-					if(res.hasRrb()){
-						if(res.getRrb().hasChunkId()){
-							//TODO send the chunk in response
-							//TODO send failure chunk not found
-						}else{
-							//TODO send file and chunk locations from log in response
-							//TODO send failure file not found
-						}
-					}else{
-						//TODO send failure - Invalid read request
-					}
-					break;
-				case WRITEFILE:
-						if(req.hasRwb()){
-							if(req.getRwb().hasChunk()){
-								//TODO save chunk data on local fs
-							}else{
-								//TODO send failure message - no chunk data
-							}
-						}else{
-							//TODO send failure message - Invalid write request
-						}
-					break;
-//				case DELETEFILE:
-//					
-//					break;
-//				case UPDATEFILE:
-//					
-//					break;
-				default:
-					break;
-				}
-			} else{
-				
-			}
-
-		} catch (Exception e) {
-			Failure.Builder eb = Failure.newBuilder();
-			eb.setId(conf.getNodeId());
-			eb.setRefId(msg.getHeader().getNodeId());
-			eb.setMessage(e.getMessage());
-			CommandMessage.Builder rb = CommandMessage.newBuilder(msg);
-			rb.setErr(eb);
-			channel.write(rb.build());
-		}
-
-		System.out.flush();
 	}
 
 	/**
@@ -169,8 +63,13 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
-		//TODO store all messages in a queue
-		handleMessage(msg, ctx.channel());
+		long sequence = ringBuffer.next(); // Grab the next sequence
+		try {
+			CommandMessageEvent event = ringBuffer.get(sequence);
+			event.set(msg, ctx.channel()); // Fill with data
+		} finally {
+			ringBuffer.publish(sequence);
+		}
 	}
 
 	@Override
@@ -179,4 +78,133 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		ctx.close();
 	}
 
+}
+
+class CommandMessageEvent {
+	public CommandMessage msg;
+	public Channel channel;
+
+	public void set(CommandMessage msg, Channel chnl) {
+		this.msg = msg;
+		this.channel = chnl;
+	}
+}
+
+class CommandMessageEventFactory implements EventFactory<CommandMessageEvent> {
+	public CommandMessageEvent newInstance() {
+		return new CommandMessageEvent();
+	}
+}
+
+class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
+	protected static Logger logger = LoggerFactory.getLogger("cmd");
+	protected RoutingConf conf;
+
+	CommandMessageEventHandler(RoutingConf conf) {
+		this.conf = conf;
+	}
+
+	public void onEvent(CommandMessageEvent event, long sequence, boolean endOfBatch) {
+		CommandMessage msg = event.msg;
+		Channel channel = event.channel;
+		if (msg == null) {
+			System.out.println("ERROR: Unexpected content - " + msg);
+			logger.error("ERROR: Unexpected content - " + msg);
+			return;
+		}
+
+		PrintUtil.printCommand(msg);
+
+		try {
+			if (msg.hasPing()) {
+				logger.info("ping from " + msg.getHeader().getNodeId());
+			} else if (msg.hasMessage()) {
+				logger.info(msg.getMessage());
+			} else if (msg.hasReq()) {
+				Request req = msg.getReq();
+				switch (req.getRequestType()) {
+				case READFILE:
+					if (req.hasRrb()) {
+						if (req.getRrb().hasChunkId()) {
+							// TODO send the chunk in response
+							// TODO send failure chunk not found
+						} else {
+							// TODO send file and chunk locations from log in
+							// response
+							// TODO send failure file not found
+						}
+					} else {
+						// TODO send failure - Invalid read request
+					}
+					break;
+				case WRITEFILE:
+					if (req.hasRwb()) {
+						if (req.getRwb().hasChunk()) {
+							// TODO save chunk data on local fs
+						} else {
+							// TODO send failure message - no chunk data
+						}
+					} else {
+						// TODO send failure message - Invalid write request
+					}
+					break;
+				// case DELETEFILE:
+				//
+				// break;
+				// case UPDATEFILE:
+				//
+				// break;
+				default:
+					break;
+				}
+
+			} else if (msg.hasResp()) {
+				Response res = msg.getResp();
+				switch (res.getResponseType()) {
+				// case READFILE:
+				// if(res.hasRrb()){
+				// if(res.getRrb().hasChunkId()){
+				// //TODO send the chunk in response
+				// //TODO send failure chunk not found
+				// }else{
+				// //TODO send file and chunk locations from log in response
+				// //TODO send failure file not found
+				// }
+				// }else{
+				// //TODO send failure - Invalid read request
+				// }
+				// break;
+				case WRITEFILE:
+					if (res.hasAck()) {
+						if (res.getAck() == ResponseStatus.Fail) {
+							// TODO send chunk data that is not received by
+							// client for given chunk ids in response
+						}
+					}
+					break;
+				// case DELETEFILE:
+				//
+				// break;
+				// case UPDATEFILE:
+				//
+				// break;
+				default:
+					break;
+				}
+			} else {
+				// unrecognised message
+			}
+
+		} catch (Exception e) {
+			Failure.Builder eb = Failure.newBuilder();
+			eb.setId(conf.getNodeId());
+			eb.setRefId(msg.getHeader().getNodeId());
+			eb.setMessage(e.getMessage());
+			CommandMessage.Builder rb = CommandMessage.newBuilder(msg);
+			rb.setErr(eb);
+			channel.write(rb.build());
+		}
+
+		System.out.flush();
+	}
 }

@@ -85,13 +85,15 @@ message Node{
 	required int32 port = 3;
 }
 
+enum ResponseStatus{
+	Success = 1;
+	Fail = 2;
+}
+
 message Response{
 	required TaskType responseType = 1; 
 	optional string filename=3; 
-	enum Status{
-		Success = 1;
-		Failure = 2;
-	}
+	optional ResponseStatus ack = 6;
 	oneof payload{
 		WriteResponse writeResponse = 4;
 		ReadResponse readResponse = 5;

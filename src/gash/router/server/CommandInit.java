@@ -1,5 +1,11 @@
 package gash.router.server;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+
 import gash.router.container.RoutingConf;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -20,11 +26,27 @@ import routing.Pipe.CommandMessage;
 public class CommandInit extends ChannelInitializer<SocketChannel> {
 	boolean compress = false;
 	RoutingConf conf;
-
+	RingBuffer<CommandMessageEvent> ringBuffer;
+	
+	@SuppressWarnings("unchecked")
 	public CommandInit(RoutingConf conf, boolean enableCompression) {
 		super();
 		compress = enableCompression;
 		this.conf = conf;
+		
+		// Proactor pattern - create a thread pool to serve client requests. speed efficiency
+		// Disruptor pattern message queue as a buffer. Avoiding locks provides huge speed gain
+		// As mostly the message queue is either full or empty and so using ring buffer and producer/consumer events
+		// provides efficiency. Code help from LMAX Disruptor github repo
+		
+		// Executor that will be used to construct new threads for consumers
+        Executor executor = Executors.newCachedThreadPool();
+        CommandMessageEventFactory factory = new CommandMessageEventFactory();
+        int bufferSize = 1024; // Specify the size of the ring buffer, must be power of 2.
+        Disruptor<CommandMessageEvent> disruptor = new Disruptor<CommandMessageEvent>(factory, bufferSize, executor);
+        disruptor.handleEventsWith(new CommandMessageEventHandler(conf));
+        disruptor.start();
+        this.ringBuffer = disruptor.getRingBuffer();
 	}
 
 	@Override
@@ -51,8 +73,8 @@ public class CommandInit extends ChannelInitializer<SocketChannel> {
 		pipeline.addLast("frameEncoder", new LengthFieldPrepender(4));
 		pipeline.addLast("protobufEncoder", new ProtobufEncoder());
 
-
 		// our server processor (new instance for each connection)
-		pipeline.addLast("handler", new CommandHandler(conf));
+		// Command handler creates command message events and pushes it into disruptor ring buffer.
+		pipeline.addLast("handler", new CommandHandler(conf, ringBuffer));
 	}
 }

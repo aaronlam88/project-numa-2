@@ -82,7 +82,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				WorkState s = msg.getState();
 			}
 		} catch (Exception e) {
-			logger.error("Exception: " + e.message());
+			logger.error("Exception: " + e.getMessage());
 			Failure.Builder eb = Failure.newBuilder();
 			eb.setId(state.getConf().getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());

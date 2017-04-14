@@ -26,8 +26,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	 */
 	public void handleMessage(CommandMessage msg, Channel channel) {
 		if (msg == null) {
-			// TODO add logging
-			System.out.println("ERROR: Unexpected content - " + msg);
+			logger.error("ERROR: Unexpected content - " + msg);
 			return;
 		}
 
@@ -40,11 +39,16 @@ public class RequestHandler extends SimpleChannelInboundHandler<CommandMessage> 
 				//logger.info("ping from " + msg.getMessage());
 			} else if (msg.hasMessage()) {
 				logger.info(msg.getMessage());
-			} else {
+			} else if (msg.hasErr()) {
+				logger.error("ERROR: " + msg.getMessage());
+			} else if (msg.hasReq()) {
+				// TODO handle request
+			} else if (msg.hasResp()) {
+				// TODO handle respond
 			}
 
 		} catch (Exception e) {
-			// TODO add logging
+			logger.error("ERROR: " + e.getMessage());
 			Failure.Builder eb = Failure.newBuilder();
 			eb.setId(conf.getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());

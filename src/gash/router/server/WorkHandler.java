@@ -38,7 +38,7 @@ import pipe.work.Work.WorkState;
 public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	protected static Logger logger = LoggerFactory.getLogger("work");
 	protected ServerState state;
-	protected boolean debug = false;
+	protected boolean debug = true;
 
 	public WorkHandler(ServerState state) {
 		if (state != null) {
@@ -54,19 +54,18 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 	public void handleMessage(WorkMessage msg, Channel channel) {
 		if (msg == null) {
-			// TODO add logging
-			System.out.println("ERROR: Unexpected content - " + msg);
+			logger.error("ERROR: Unexpected content - " + msg);
 			return;
 		}
 
-		// if (debug)
-		PrintUtil.printWork(msg);
+		if (debug)
+			PrintUtil.printWork(msg);
 
 		// TODO How can you implement this without if-else statements?
 		try {
 			if (msg.hasBeat()) {
 				Heartbeat hb = msg.getBeat();
-				logger.debug("heartbeat from " + msg.getHeader().getNodeId());
+				logger.info("heartbeat from " + msg.getHeader().getNodeId());
 			} else if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
 				boolean p = msg.getPing();
@@ -83,7 +82,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				WorkState s = msg.getState();
 			}
 		} catch (Exception e) {
-			// TODO add logging
+			logger.error("Exception: " + e.message());
 			Failure.Builder eb = Failure.newBuilder();
 			eb.setId(state.getConf().getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());

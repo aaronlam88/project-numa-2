@@ -15,6 +15,8 @@
  */
 package gash.router.server;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +24,11 @@ import gash.router.container.RoutingConf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import pipe.common.Common.Chunk;
+import pipe.common.Common.ChunkLocation;
 import pipe.common.Common.Failure;
+import pipe.common.Common.GetLog;
+import pipe.common.Common.Node;
 import pipe.common.Common.Request;
 import pipe.common.Common.Response;
 import pipe.common.Common.ResponseStatus;
@@ -126,11 +132,11 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				case READFILE:
 					if (req.hasRrb()) {
 						if (req.getRrb().hasChunkId()) {
-							// TODO send the chunk in response
-							// TODO send failure chunk not found
+							
 						} else {
 							// TODO send file and chunk locations from log in
 							// response
+							// send back log.get(req.getRrb().getChunkId());
 							// TODO send failure file not found
 						}
 					} else {
@@ -191,7 +197,17 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				default:
 					break;
 				}
-			} else {
+			} else if (msg.hasGetLog()) {
+				//TODO return log file
+				GetLog.Builder lb = GetLog.newBuilder();
+			} else if (msg.hasAddChunk()) {
+				//TODO only leader should send out this message, check is from leader?
+				//TODO get chunk_id, and chunk_location from msg and add to hashTable
+			} else if (msg.hasRemoveChunk()) {
+				//TODO only leader should send out this message, check is from leader?
+				//TODO get chunk_id from msg, remove the chunk_id for hashTable
+			}
+			else {
 				// unrecognised message
 			}
 

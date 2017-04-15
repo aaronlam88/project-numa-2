@@ -19,16 +19,16 @@ message Header {
 }
 
 message GetLog {
-	map<int32, ChunkLocation> hashTable = 1;
+	map<int64, ChunkLocation> hashTable = 1;
 }
 
 message AddChunk {
-	required int32 chunk_id = 1;
+	required int64 chunk_id = 1;
 	required ChunkLocation chunkLocation = 2;
 }
 
 message RemoveChunk {
-	required int32 chunk_id = 1;
+	required int64 chunk_id = 1;
 }
 
 message Failure {

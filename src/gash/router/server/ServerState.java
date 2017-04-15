@@ -13,7 +13,7 @@ public class ServerState {
 	private EdgeMonitor emon;
 	private TaskList tasks;
 	
-	private Hashtable<Chunk, ChunkLocation> hashTable;
+	public static Hashtable<Long, ChunkLocation> hashTable;
 
 	public RoutingConf getConf() {
 		return conf;
@@ -38,13 +38,4 @@ public class ServerState {
 	public void setTasks(TaskList tasks) {
 		this.tasks = tasks;
 	}
-
-	public Hashtable<Chunk, ChunkLocation> getHashTable() {
-		return hashTable;
-	}
-
-	public void setHashTable(Hashtable<Chunk, ChunkLocation> hashTable) {
-		this.hashTable = hashTable;
-	}
-
 }

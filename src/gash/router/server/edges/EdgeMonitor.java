@@ -108,6 +108,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	private void sendHeartBeat() {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
+			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive()) {
 				//ei.retry = 0;
 				WorkMessage wm = createHB(ei);

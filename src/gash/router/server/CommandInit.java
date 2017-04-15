@@ -6,7 +6,7 @@ import java.util.concurrent.Executors;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 
-import gash.router.container.RoutingConf;
+//import gash.router.container.RoutingConf;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
@@ -25,14 +25,16 @@ import routing.Pipe.CommandMessage;
  */
 public class CommandInit extends ChannelInitializer<SocketChannel> {
 	boolean compress = false;
-	RoutingConf conf;
+	//RoutingConf conf;
 	RingBuffer<CommandMessageEvent> ringBuffer;
+	ServerState state;
 	
 	@SuppressWarnings("unchecked")
-	public CommandInit(RoutingConf conf, boolean enableCompression) {
+	public CommandInit(ServerState state, boolean enableCompression) {
 		super();
 		compress = enableCompression;
-		this.conf = conf;
+		//this.conf = state.getConf();
+		this.state = state;
 		
 		// Proactor pattern - create a thread pool to serve client requests. speed efficiency
 		// Disruptor pattern message queue as a buffer. Avoiding locks provides huge speed gain
@@ -44,7 +46,7 @@ public class CommandInit extends ChannelInitializer<SocketChannel> {
         CommandMessageEventFactory factory = new CommandMessageEventFactory();
         int bufferSize = 1024; // Specify the size of the ring buffer, must be power of 2.
         Disruptor<CommandMessageEvent> disruptor = new Disruptor<CommandMessageEvent>(factory, bufferSize, executor);
-        disruptor.handleEventsWith(new CommandMessageEventHandler(conf));
+        disruptor.handleEventsWith(new CommandMessageEventHandler(state));
         disruptor.start();
         this.ringBuffer = disruptor.getRingBuffer();
 	}
@@ -75,6 +77,6 @@ public class CommandInit extends ChannelInitializer<SocketChannel> {
 
 		// our server processor (new instance for each connection)
 		// Command handler creates command message events and pushes it into disruptor ring buffer.
-		pipeline.addLast("handler", new CommandHandler(conf, ringBuffer));
+		pipeline.addLast("handler", new CommandHandler(state, ringBuffer));
 	}
 }

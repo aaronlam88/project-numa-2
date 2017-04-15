@@ -46,7 +46,7 @@ public class MessageServer {
 
 	protected RoutingConf conf;
 	protected boolean background = false;
-
+    protected ServerState myState;
 	/**
 	 * initialize the server with a configuration of it's resources
 	 * 
@@ -66,13 +66,14 @@ public class MessageServer {
 	public void startServer() {
 		StartWorkCommunication comm = new StartWorkCommunication(conf);
 		logger.info("Work starting");
-
+		this.myState = comm.getServerState();
+		
 		// We always start the worker in the background
 		Thread cthread = new Thread(comm);
 		cthread.start();
 
 		if (!conf.isInternalNode()) {
-			StartCommandCommunication comm2 = new StartCommandCommunication(conf);
+			StartCommandCommunication comm2 = new StartCommandCommunication(myState);
 			logger.info("Command starting");
 
 			if (background) {
@@ -129,9 +130,11 @@ public class MessageServer {
 	 */
 	private static class StartCommandCommunication implements Runnable {
 		RoutingConf conf;
-
-		public StartCommandCommunication(RoutingConf conf) {
-			this.conf = conf;
+		ServerState state;
+		
+		public StartCommandCommunication(ServerState state) {
+			this.conf = state.getConf();
+			this.state = state;
 		}
 
 		public void run() {
@@ -152,7 +155,7 @@ public class MessageServer {
 				// b.option(ChannelOption.MESSAGE_SIZE_ESTIMATOR);
 
 				boolean compressComm = false;
-				b.childHandler(new CommandInit(conf, compressComm));
+				b.childHandler(new CommandInit(this.state, compressComm));
 
 				// Start the server.
 				logger.info("Starting command server (" + conf.getNodeId() + "), listening on port = "
@@ -199,7 +202,11 @@ public class MessageServer {
 			Thread t = new Thread(emon);
 			t.start();
 		}
-
+		
+		public ServerState getServerState(){
+			return this.state;
+		}
+		
 		public void run() {
 			// construct boss and worker threads (num threads = number of cores)
 

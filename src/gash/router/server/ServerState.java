@@ -5,16 +5,14 @@ import java.util.Hashtable;
 import gash.router.container.RoutingConf;
 import gash.router.server.edges.EdgeMonitor;
 import gash.router.server.tasks.TaskList;
-import pipe.common.Common.Chunk;
 import pipe.common.Common.ChunkLocation;
 
 public class ServerState {
 	private RoutingConf conf;
 	private EdgeMonitor emon;
-	private TaskList tasks;
-	
+	private TaskList tasks;	
 	public static Hashtable<Long, ChunkLocation> hashTable;
-
+	
 	public RoutingConf getConf() {
 		return conf;
 	}

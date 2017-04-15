@@ -12,7 +12,7 @@ echo server home = $SVR_HOME
 #cd ${SVR_HOME}
 
 JAVA_MAIN='gash.router.app.DemoApp'
-JAVA_ARGS="169.254.196.67 4168"
+JAVA_ARGS="localhost 4168"
 #echo -e "\n** config: ${JAVA_ARGS} **\n"
 
 # superceded by http://www.oracle.com/technetwork/java/tuning-139912.html

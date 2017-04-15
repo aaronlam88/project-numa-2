@@ -72,10 +72,11 @@ public class DemoApp implements CommListener {
 
 		try {
 			MessageClient mc = new MessageClient(host, port);
-			DemoApp da = new DemoApp(mc);
+//			DemoApp da = new DemoApp(mc);
 
 			// do stuff w/ the connection
-			da.ping(2);
+//			da.ping(2);
+			mc.testCmd();
 
 			System.out.println("\n** exiting in 10 seconds. **");
 			System.out.flush();

@@ -15,6 +15,7 @@
  */
 package gash.router.client;
 
+import pipe.common.Common;
 import pipe.common.Common.Header;
 import routing.Pipe.CommandMessage;
 
@@ -61,6 +62,17 @@ public class MessageClient {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void testCmd(){
+		Header.Builder hd = Header.newBuilder();
+		hd.setNodeId(999);
+		hd.setTime(System.currentTimeMillis());
+		hd.setDestination(1);
+		
+		CommandMessage.Builder cmd = CommandMessage.newBuilder();
+		cmd.setHeader(hd);
+		cmd.setErr(Common.Failure.newBuilder());
 	}
 
 	public void release() {

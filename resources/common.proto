@@ -99,3 +99,24 @@ message Response{
 		ReadResponse readResponse = 5;
 	}
 }
+
+message GetLogFile {    
+    // map < Chunk_ID, ChunkLocation>
+    map<int32, ChunkLocation> hashTable = 1;
+}
+
+message UpdateLog {
+	// isRemove true, remove chunkid from log
+	// isRemove false, add chunkid to to log
+	required bool isRemove = 1;
+
+	required int32 chunkid = 2;
+	optional ChunkLocation = 3;
+}
+
+
+
+
+
+
+

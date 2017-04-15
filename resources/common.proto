@@ -85,6 +85,7 @@ message ReadResponse{
 	optional string file_ext= 3;
 	optional int32 num_of_chunks = 4;
 	repeated ChunkLocation chunk_location = 5;
+	optional Chunk chunk = 6;
 }
 
 message ChunkLocation{

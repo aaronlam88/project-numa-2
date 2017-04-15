@@ -16,6 +16,8 @@
 package gash.router.client;
 
 import pipe.common.Common;
+import pipe.common.Common.Failure;
+import pipe.common.Common.Failure.Builder;
 import pipe.common.Common.Header;
 import routing.Pipe.CommandMessage;
 
@@ -70,9 +72,25 @@ public class MessageClient {
 		hd.setTime(System.currentTimeMillis());
 		hd.setDestination(1);
 		
+		Failure.Builder fl = Common.Failure.newBuilder();
+		fl.setId(999);
+		fl.setRefId(999);
+		
+		
 		CommandMessage.Builder cmd = CommandMessage.newBuilder();
 		cmd.setHeader(hd);
-		cmd.setErr(Common.Failure.newBuilder());
+		cmd.setErr(fl);
+		
+		try {
+			// direct no queue
+			// CommConnection.getInstance().write(rb.build());
+
+			// using queue
+			CommConnection.getInstance().enqueue(cmd.build());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 	}
 
 	public void release() {

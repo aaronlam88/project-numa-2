@@ -12,9 +12,8 @@ public class ServerState {
 	private RoutingConf conf;
 	private EdgeMonitor emon;
 	private TaskList tasks;
-	
 	private Hashtable<Chunk, ChunkLocation> hashTable;
-
+	
 	public RoutingConf getConf() {
 		return conf;
 	}

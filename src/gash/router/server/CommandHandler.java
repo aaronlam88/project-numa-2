@@ -18,7 +18,7 @@ package gash.router.server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import gash.router.container.RoutingConf;
+//import gash.router.container.RoutingConf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -41,13 +41,13 @@ import com.lmax.disruptor.RingBuffer;
  */
 public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> {
 	protected static Logger logger = LoggerFactory.getLogger("cmd");
-	protected RoutingConf conf;
+	protected ServerState serverState;
 	protected RingBuffer<CommandMessageEvent> ringBuffer;
 
-	public CommandHandler(RoutingConf conf, RingBuffer<CommandMessageEvent> ringBuffer) {
+	public CommandHandler(ServerState serverState, RingBuffer<CommandMessageEvent> ringBuffer) {
 		this.ringBuffer = ringBuffer;
-		if (conf != null) {
-			this.conf = conf;
+		if (serverState != null) {
+			this.serverState = serverState;
 		}
 	}
 
@@ -98,10 +98,10 @@ class CommandMessageEventFactory implements EventFactory<CommandMessageEvent> {
 
 class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 	protected static Logger logger = LoggerFactory.getLogger("cmd");
-	protected RoutingConf conf;
+	protected ServerState serverState;
 
-	CommandMessageEventHandler(RoutingConf conf) {
-		this.conf = conf;
+	CommandMessageEventHandler(ServerState serverState) {
+		this.serverState = serverState;
 	}
 
 	public void onEvent(CommandMessageEvent event, long sequence, boolean endOfBatch) {
@@ -197,7 +197,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 		} catch (Exception e) {
 			Failure.Builder eb = Failure.newBuilder();
-			eb.setId(conf.getNodeId());
+			eb.setId(this.serverState.getConf().getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());
 			eb.setMessage(e.getMessage());
 			CommandMessage.Builder rb = CommandMessage.newBuilder(msg);

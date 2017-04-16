@@ -82,19 +82,28 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				Task t = msg.getTask();
 			} else if (msg.hasState()) {
 				WorkState s = msg.getState();
-			}else if (msg.hasGetLog()) {
+			} else if (msg.hasGetLog()) {
 				// sender want to the log!
 				// build log message from hashTable
 				Log.Builder logmsg = Log.newBuilder();
 				logmsg.putAllHashTable(ServerState.hashTable);
 				// write log file back to sender
 				channel.write(logmsg);
+			} else if (msg.hasRequestAppend()) {
+				// TODO FOLLOWER want to append, ONLY LEADER should read this message
+
+			} else if (msg.hasRequestRemove()) {
+				// TODO FOLLOWER want to remove, ONLY LEADER should read this message
+				
 			} else if (msg.hasAppend()) {
-				//TODO only leader should send out this message, check is from leader?
-				//TODO get chunk_id, and chunk_location from msg and add to hashTable
+				// TODO only leader should send out this message, check is from
+				// leader?
+				// TODO get chunk_id, and chunk_location from msg and add to
+				// hashTable
 			} else if (msg.hasRemove()) {
-				//TODO only leader should send out this message, check is from leader?
-				//TODO get chunk_id from msg, remove the chunk_id for hashTable
+				// TODO only leader should send out this message, check is from
+				// leader?
+				// TODO get chunk_id from msg, remove the chunk_id for hashTable
 			}
 		} catch (Exception e) {
 			logger.error("Exception: " + e.getMessage());

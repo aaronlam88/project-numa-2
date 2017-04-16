@@ -40,7 +40,7 @@ message GetLog {
 
 /**
  * FOLLOER message to other LEADER to append filename to log
- * append filename, chunk_id, and chunkLocation to hashTable
+ * trying to append filename, chunk_id, and chunkLocation to hashTable
  */
 message RequestAppendItem {
 	required string filename = 1;
@@ -48,6 +48,11 @@ message RequestAppendItem {
 	required ChunkLocation chunkLocation = 3;
 }
 
+
+/**
+ * FOLLOER message to other LEADER to remove filename to log
+ * trying to remove filename key from hashTable
+ */
 message RequestRemoveItem {
 	required string filename = 1;	
 }

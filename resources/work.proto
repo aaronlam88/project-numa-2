@@ -45,8 +45,10 @@ message WorkMessage {
       WorkState state = 7;
       LeaderStatus leader = 8;
       
-      GetLog getLog = 11;
-      AppendLogItem append = 9;
-      RemoveLogItem remove = 10;
+      GetLog getLog = 9;
+      RequestAppendItem requestAppend = 10;
+      RequestRemoveItem requestRemove = 11;
+      AppendLogItem append = 12;
+      RemoveLogItem remove = 13;
    }
 }

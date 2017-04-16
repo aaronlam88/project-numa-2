@@ -18,11 +18,15 @@ message Header {
     optional int32 max_hops = 10 [default = -1];
 }
 
+message LocationList {
+	repeated ChunkLocation locationList = 1;
+}
+
 /**
  * message use to send log file between servers
  */
 message Log {
-	map<int64, ChunkLocation> hashTable = 1;
+	map<string, LocationList> hashTable = 1;
 }
 
 /** 

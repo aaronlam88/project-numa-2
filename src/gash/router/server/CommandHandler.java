@@ -25,6 +25,7 @@ import pipe.common.Common.Chunk;
 import pipe.common.Common.ChunkLocation;
 import pipe.common.Common.Failure;
 import pipe.common.Common.Header;
+import pipe.common.Common.LocationList;
 import pipe.common.Common.ReadResponse;
 
 import pipe.common.Common.Request;
@@ -167,10 +168,12 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				// TODO send failure file not found
 
 				// read locations form hashtable and send to client
-				ChunkLocation cha[] = serverState.hashTable.get(req.getRrb().getFilename());
-				if (cha != null) {
-					for (int i = 0; i < cha.length; ++i) {
-						rrb.setChunkLocation(i, cha[i]);
+				LocationList locationList= ServerState.hashTable.get(req.getRrb().getFilename());
+
+				if (locationList != null) {
+					
+					for (ChunkLocation chunkLocation : locationList.getLocationListList()) {
+						rrb.setChunkLocation(chunkLocation.getChunkid(), chunkLocation);
 					}
 				} else {
 					rsp.setAck(ResponseStatus.Fail);

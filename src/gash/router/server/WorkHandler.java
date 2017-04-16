@@ -23,6 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import pipe.common.Common.Failure;
 import pipe.common.Common.GetLog;
+import pipe.common.Common.Log;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
@@ -82,8 +83,12 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			} else if (msg.hasState()) {
 				WorkState s = msg.getState();
 			}else if (msg.hasGetLog()) {
-				//TODO return log file
-				GetLog.Builder lb = GetLog.newBuilder();
+				// sender want to the log!
+				// build log message from hashTable
+				Log.Builder logmsg = Log.newBuilder();
+				logmsg.putAllHashTable(ServerState.hashTable);
+				// write log file back to sender
+				channel.write(logmsg);
 			} else if (msg.hasAppend()) {
 				//TODO only leader should send out this message, check is from leader?
 				//TODO get chunk_id, and chunk_location from msg and add to hashTable

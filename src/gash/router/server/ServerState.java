@@ -7,13 +7,13 @@ import java.util.LinkedList;
 import gash.router.container.RoutingConf;
 import gash.router.server.edges.EdgeMonitor;
 import gash.router.server.tasks.TaskList;
-import pipe.common.Common.ChunkLocation;
+import pipe.common.Common.LocationList;
 
 public class ServerState {
 	private RoutingConf conf;
 	private EdgeMonitor emon;
 	private TaskList tasks;
-	public Hashtable<String, ChunkLocation[]> hashTable;
+	public static Hashtable<String, LocationList> hashTable = new Hashtable<>();
 	private String dataPath;
 	public Deque<FileChunkObject> incoming;
 	

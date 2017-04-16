@@ -13,7 +13,7 @@ public class ServerState {
 	private RoutingConf conf;
 	private EdgeMonitor emon;
 	private TaskList tasks;
-	private int currentLeader;
+	private int currentLeader; //current leader node id
 	private boolean isLeader;
 	public static Hashtable<String, LocationList> hashTable = new Hashtable<>();
 	private String dataPath;
@@ -27,6 +27,9 @@ public class ServerState {
 		}
 		
 		incoming = new LinkedList<FileChunkObject>();
+		currentLeader = -1; // unknown
+		isLeader = false; // doesn't assume itself as leader
+		//if both currentLeader is unknown call for election
 	}
 	
 	public String getDbPath(){

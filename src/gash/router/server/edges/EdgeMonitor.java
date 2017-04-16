@@ -85,7 +85,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		wb.setHeader(hb);
 		wb.setBeat(bb);
 		wb.setSecret(121316546);
-		
+
 		return wb.build();
 	}
 
@@ -95,13 +95,16 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	@Override
 	public void run() {
+		Process_Forward pFoward = new Process_Forward(inboundEdges, outboundEdges, state);
+		pFoward.run();
+		
+		Process_InComming pIncomming = new Process_InComming(inboundEdges, outboundEdges, state);
+		pIncomming.run();
+		
 		while (forever) {
 			try {
 				sendHeartBeat();
-				process_wmforward();
-				process_incoming();
 				Thread.sleep(dt);
-
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -113,7 +116,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive()) {
-				//ei.retry = 0;
+				// ei.retry = 0;
 				WorkMessage wm = createHB(ei);
 				ei.getChannel().writeAndFlush(wm);
 			} else {
@@ -137,11 +140,46 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		}
 
 	}
-	
+
+	@Override
+	public synchronized void onAdd(EdgeInfo ei) {
+		// TODO check connection
+	}
+
+	@Override
+	public synchronized void onRemove(EdgeInfo ei) {
+		// TODO ?
+	}
+}
+
+class Process_Forward implements Runnable {
+	protected static Logger logger = LoggerFactory.getLogger("Process_Queue");
+
+	private EdgeList outboundEdges;
+	private EdgeList inboundEdges;
+	private ServerState state;
+
+	public Process_Forward(EdgeList in, EdgeList out, ServerState state) {
+		this.outboundEdges = out;
+		this.inboundEdges = in;
+		this.state = state;
+	}
+
+	@Override
+	public void run() {
+		while (true) {
+			process_wmforward();
+		}
+	}
+
+	public void createInboundIfNew(int ref, String host, int port) {
+		inboundEdges.createIfNew(ref, host, port);
+	}
+
 	private void process_wmforward() {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
-			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive() && !state.wmforward.isEmpty()) {
+				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 				WorkMessage wm = state.wmforward.poll();
 				ei.getChannel().writeAndFlush(wm);
 			} else {
@@ -164,7 +202,32 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 			}
 		}
 	}
-	
+}
+
+class Process_InComming implements Runnable {
+	protected static Logger logger = LoggerFactory.getLogger("Process_Queue");
+
+	private EdgeList outboundEdges;
+	private EdgeList inboundEdges;
+	private ServerState state;
+
+	public Process_InComming(EdgeList in, EdgeList out, ServerState state) {
+		this.outboundEdges = out;
+		this.inboundEdges = in;
+		this.state = state;
+	}
+
+	@Override
+	public void run() {
+		while (true) {
+			process_incoming();
+		}
+	}
+
+	public void createInboundIfNew(int ref, String host, int port) {
+		inboundEdges.createIfNew(ref, host, port);
+	}
+
 	private void process_incoming() {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
@@ -176,8 +239,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 				hb.setMaxHops(-1);
 				AppendLogItem.Builder append = AppendLogItem.newBuilder();
 				append.setFilename(fco.getFileName());
-				
-				
+
 			} else {
 				try {
 					EventLoopGroup group = new NioEventLoopGroup();
@@ -199,13 +261,4 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		}
 	}
 
-	@Override
-	public synchronized void onAdd(EdgeInfo ei) {
-		// TODO check connection
-	}
-
-	@Override
-	public synchronized void onRemove(EdgeInfo ei) {
-		// TODO ?
-	}
 }

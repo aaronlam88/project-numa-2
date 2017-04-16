@@ -13,6 +13,8 @@ public class ServerState {
 	private RoutingConf conf;
 	private EdgeMonitor emon;
 	private TaskList tasks;
+	private int currentLeader;
+	private boolean isLeader;
 	public static Hashtable<String, LocationList> hashTable = new Hashtable<>();
 	private String dataPath;
 	public Deque<FileChunkObject> incoming;
@@ -53,5 +55,21 @@ public class ServerState {
 
 	public void setTasks(TaskList tasks) {
 		this.tasks = tasks;
+	}
+
+	public int getCurrentLeader() {
+		return currentLeader;
+	}
+
+	public void setCurrentLeader(int currentLeader) {
+		this.currentLeader = currentLeader;
+	}
+
+	public boolean isLeader() {
+		return isLeader;
+	}
+
+	public void setLeader(boolean isLeader) {
+		this.isLeader = isLeader;
 	}
 }

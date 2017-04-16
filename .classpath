@@ -6,10 +6,14 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/jackson-all-1.8.5.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="lib" path="lib/netty-all-4.0.15.Final.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.2.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-simple-1.7.2.jar"/>
 	<classpathentry kind="lib" path="lib/protobuf-java-3.2.0.jar"/>
 	<classpathentry kind="lib" path="lib/disruptor-3.3.0.jar"/>
+	<classpathentry kind="lib" path="lib/netty-all-4.1.9.Final.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/netty-pipe/lib/netty-all-4.1.9.Final-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

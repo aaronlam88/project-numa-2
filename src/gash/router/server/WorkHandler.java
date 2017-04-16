@@ -21,9 +21,13 @@ import org.slf4j.LoggerFactory;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import pipe.common.Common.AppendLogItem;
 import pipe.common.Common.Failure;
 import pipe.common.Common.GetLog;
 import pipe.common.Common.Log;
+import pipe.common.Common.RemoveLogItem;
+import pipe.common.Common.RequestAppendItem;
+import pipe.common.Common.RequestRemoveItem;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
@@ -89,21 +93,32 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				logmsg.putAllHashTable(ServerState.hashTable);
 				// write log file back to sender
 				channel.write(logmsg);
-			} else if (msg.hasRequestAppend()) {
-				// TODO FOLLOWER want to append, ONLY LEADER should read this message
-
-			} else if (msg.hasRequestRemove()) {
-				// TODO FOLLOWER want to remove, ONLY LEADER should read this message
+			} else if (msg.hasRequestAppend() && state.isLeader()) {
+				// FOLLOWER want to append, ONLY LEADER should read this message
+				RequestAppendItem request = msg.getRequestAppend();
+				ServerState.hashTable.put(request.getFilename(), request.getLocationList());
+				// TODO append success, notify all FOLLOWERS
 				
-			} else if (msg.hasAppend()) {
-				// TODO only leader should send out this message, check is from
+			} else if (msg.hasRequestRemove() && state.isLeader()) {
+				// FOLLOWER want to remove, ONLY LEADER should read this message
+				RequestRemoveItem request = msg.getRequestRemove();
+				ServerState.hashTable.remove(request.getFilename());
+				// TODO remove success, notify all FOLLOWERS
+				
+			} else if (msg.hasAppend() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
+				// only leader should send out this message, check is from
 				// leader?
-				// TODO get chunk_id, and chunk_location from msg and add to
+				// get chunk_id, and chunk_location from msg and add to
 				// hashTable
-			} else if (msg.hasRemove()) {
-				// TODO only leader should send out this message, check is from
+				AppendLogItem item = msg.getAppend();
+				ServerState.hashTable.put(item.getFilename(), item.getLocationList());
+				
+			} else if (msg.hasRemove() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
+				// only leader should send out this message, check is from
 				// leader?
-				// TODO get chunk_id from msg, remove the chunk_id for hashTable
+				// get chunk_id from msg, remove the chunk_id for hashTable
+				RemoveLogItem item = msg.getRemove();
+				ServerState.hashTable.remove(item.getFilename());
 			}
 		} catch (Exception e) {
 			logger.error("Exception: " + e.getMessage());

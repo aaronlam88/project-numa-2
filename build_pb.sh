@@ -22,8 +22,21 @@ else
   mkdir "${project_base}/generated"
 fi
 
+if [ -d ${project_base}/client/generatedpy ]; then
+  echo "removing contents of ${project_base}/client/generatedpy"
+  rm -r ${project_base}/client/generatedpy/*
+else
+  echo "creating directory ${project_base}/client/generatedpy"
+  mkdir "${project_base}/client/generatedpy"
+fi
+
 
 protoc --proto_path="${project_base}/resources" --java_out="${project_base}/generated" "${project_base}/resources/common.proto"
 protoc --proto_path="${project_base}/resources" --java_out="${project_base}/generated" "${project_base}/resources/election.proto"
 protoc --proto_path="${project_base}/resources" --java_out="${project_base}/generated" "${project_base}/resources/pipe.proto"
 protoc --proto_path="${project_base}/resources" --java_out="${project_base}/generated" "${project_base}/resources/work.proto"
+
+protoc --proto_path="${project_base}/resources" --python_out="${project_base}/client/generatedpy" "${project_base}/resources/common.proto"
+protoc --proto_path="${project_base}/resources" --python_out="${project_base}/client/generatedpy" "${project_base}/resources/election.proto"
+protoc --proto_path="${project_base}/resources" --python_out="${project_base}/client/generatedpy" "${project_base}/resources/pipe.proto"
+protoc --proto_path="${project_base}/resources" --python_out="${project_base}/client/generatedpy" "${project_base}/resources/work.proto"

@@ -24,6 +24,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import pipe.common.Common.AppendLogItem;
 import pipe.common.Common.Failure;
 import pipe.common.Common.GetLog;
+import pipe.common.Common.Header;
+import pipe.common.Common.Header.Builder;
 import pipe.common.Common.Log;
 import pipe.common.Common.RemoveLogItem;
 import pipe.common.Common.RequestAppendItem;
@@ -69,7 +71,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 		// TODO How can you implement this without if-else statements?
 		try {
-			if (msg.hasBeat()) {
+			if (msg.getHeader().getDestination() == -1 && state.isLeader()) {
+				// this is a broadcast message, leader will ignore this
+				// DO NOTHING
+			} else if (msg.hasBeat()) {
 				Heartbeat hb = msg.getBeat();
 				logger.info("heartbeat from " + msg.getHeader().getNodeId());
 			} else if (msg.hasPing()) {
@@ -87,32 +92,74 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			} else if (msg.hasState()) {
 				WorkState s = msg.getState();
 			} else if (msg.hasGetLog()) {
+				logger.info("request log from: " + msg.getHeader().getNodeId());
 				// sender want to the log!
 				// build log message from hashTable
+				Header.Builder hb = Header.newBuilder();
+				hb.setNodeId(state.getConf().getNodeId());
+				hb.setTime(System.currentTimeMillis());
+				hb.setDestination(msg.getHeader().getNodeId());
+				
 				Log.Builder logmsg = Log.newBuilder();
 				logmsg.putAllHashTable(ServerState.hashTable);
 				// write log file back to sender
-				channel.write(logmsg);
+				channel.writeAndFlush(logmsg.build());
+				
 			} else if (msg.hasRequestAppend() && state.isLeader()) {
+				logger.info("append log request from: " + msg.getHeader().getNodeId());
 				// FOLLOWER want to append, ONLY LEADER should read this message
 				RequestAppendItem request = msg.getRequestAppend();
 				ServerState.hashTable.put(request.getFilename(), request.getLocationList());
-				// TODO append success, notify all FOLLOWERS
+				// append success, notify all FOLLOWERS
+				// build append message to send out
+				AppendLogItem.Builder append = AppendLogItem.newBuilder();
+				append.setFilename(request.getFilename());
+				append.setLocationList(request.getLocationList());
+				
+				Header.Builder hb = Header.newBuilder();
+				hb.setNodeId(state.getConf().getNodeId());
+				hb.setTime(System.currentTimeMillis());
+				hb.setDestination(-1);
+				
+				WorkMessage.Builder wb = WorkMessage.newBuilder();
+				wb.setAppend(append);
+				wb.setHeader(hb);
+				
+				// send append message as broadcast
+				channel.writeAndFlush(wb.build());
 				
 			} else if (msg.hasRequestRemove() && state.isLeader()) {
+				logger.info("remove log request from: " + msg.getHeader().getNodeId());
 				// FOLLOWER want to remove, ONLY LEADER should read this message
 				RequestRemoveItem request = msg.getRequestRemove();
 				ServerState.hashTable.remove(request.getFilename());
-				// TODO remove success, notify all FOLLOWERS
+				// remove success, notify all FOLLOWERS
 				
+				// build remove message to send out
+				RemoveLogItem.Builder remove = RemoveLogItem.newBuilder();
+				remove.setFilename(request.getFilename());
+				
+				Header.Builder hb = Header.newBuilder();
+				hb.setNodeId(state.getConf().getNodeId());
+				hb.setTime(System.currentTimeMillis());
+				hb.setDestination(-1);
+				
+				WorkMessage.Builder wb = WorkMessage.newBuilder();
+				wb.setRemove(remove);
+				wb.setHeader(hb);
+				
+				//send remove message as broadcast
+				channel.writeAndFlush(wb.build());
+
 			} else if (msg.hasAppend() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
+				logger.info("request log from: " + msg.getHeader().getNodeId());
 				// only leader should send out this message, check is from
 				// leader?
 				// get chunk_id, and chunk_location from msg and add to
 				// hashTable
 				AppendLogItem item = msg.getAppend();
 				ServerState.hashTable.put(item.getFilename(), item.getLocationList());
-				
+
 			} else if (msg.hasRemove() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
 				// only leader should send out this message, check is from
 				// leader?

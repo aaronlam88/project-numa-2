@@ -43,12 +43,12 @@ import pipe.work.Work.WorkState;
  */
 public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	protected static Logger logger = LoggerFactory.getLogger("work");
-	protected ServerState state;
+	protected ServerState serverState;
 	protected boolean debug = true;
 
-	public WorkHandler(ServerState state) {
-		if (state != null) {
-			this.state = state;
+	public WorkHandler(ServerState serverState) {
+		if (serverState != null) {
+			this.serverState = serverState;
 		}
 	}
 
@@ -93,19 +93,19 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				logmsg.putAllHashTable(ServerState.hashTable);
 				// write log file back to sender
 				channel.write(logmsg);
-			} else if (msg.hasRequestAppend() && state.isLeader()) {
+			} else if (msg.hasRequestAppend() && serverState.isLeader()) {
 				// FOLLOWER want to append, ONLY LEADER should read this message
 				RequestAppendItem request = msg.getRequestAppend();
 				ServerState.hashTable.put(request.getFilename(), request.getLocationList());
 				// TODO append success, notify all FOLLOWERS
 				
-			} else if (msg.hasRequestRemove() && state.isLeader()) {
+			} else if (msg.hasRequestRemove() && serverState.isLeader()) {
 				// FOLLOWER want to remove, ONLY LEADER should read this message
 				RequestRemoveItem request = msg.getRequestRemove();
 				ServerState.hashTable.remove(request.getFilename());
 				// TODO remove success, notify all FOLLOWERS
 				
-			} else if (msg.hasAppend() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
+			} else if (msg.hasAppend() && msg.getHeader().getNodeId() == serverState.getCurrentLeader()) {
 				// only leader should send out this message, check is from
 				// leader?
 				// get chunk_id, and chunk_location from msg and add to
@@ -113,7 +113,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				AppendLogItem item = msg.getAppend();
 				ServerState.hashTable.put(item.getFilename(), item.getLocationList());
 				
-			} else if (msg.hasRemove() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
+			} else if (msg.hasRemove() && msg.getHeader().getNodeId() == serverState.getCurrentLeader()) {
 				// only leader should send out this message, check is from
 				// leader?
 				// get chunk_id from msg, remove the chunk_id for hashTable
@@ -123,7 +123,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		} catch (Exception e) {
 			logger.error("Exception: " + e.getMessage());
 			Failure.Builder eb = Failure.newBuilder();
-			eb.setId(state.getConf().getNodeId());
+			eb.setId(serverState.getConf().getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());
 			eb.setMessage(e.getMessage());
 			WorkMessage.Builder rb = WorkMessage.newBuilder(msg);
@@ -147,7 +147,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
-		handleMessage(msg, ctx.channel());
+		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId())
+			handleMessage(msg, ctx.channel());
+		else
+			serverState.wmforward.addLast(msg);
 	}
 
 	@Override

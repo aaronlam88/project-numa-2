@@ -73,13 +73,18 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
-		long sequence = ringBuffer.next(); // Grab the next sequence
-		try {
-			CommandMessageEvent event = ringBuffer.get(sequence);
-			event.set(msg, ctx.channel()); // Fill with data
-		} finally {
-			ringBuffer.publish(sequence);
+		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId()){
+			long sequence = ringBuffer.next(); // Grab the next sequence
+			try {
+				CommandMessageEvent event = ringBuffer.get(sequence);
+				event.set(msg, ctx.channel()); // Fill with data
+			} finally {
+				ringBuffer.publish(sequence);
+			}
+		}else{
+			serverState.cmforward.addLast(msg);
 		}
+		
 	}
 
 	@Override

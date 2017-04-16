@@ -211,8 +211,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					nod.host_id = serverState.getConf().getNodeId();
 					nod.hostAddress = serverState.getConf().getHostAddress();
 					nod.port_id = serverState.getConf().getCommandPort();
-					nod.chunk_id = req.getRwb().getChunk().getChunkId();
-					nod.fileName = req.getRwb().getFilename();
+					nod.setChunk_id(req.getRwb().getChunk().getChunkId());
+					nod.setFileName(req.getRwb().getFilename());
 					
 					serverState.incoming.addLast(nod);
 					

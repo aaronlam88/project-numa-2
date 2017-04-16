@@ -22,10 +22,10 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import pipe.common.Common.AppendLogItem;
+import pipe.common.Common.ChunkLocation;
 import pipe.common.Common.Failure;
-import pipe.common.Common.GetLog;
 import pipe.common.Common.Header;
-import pipe.common.Common.Header.Builder;
+import pipe.common.Common.LocationList;
 import pipe.common.Common.Log;
 import pipe.common.Common.RemoveLogItem;
 import pipe.common.Common.RequestAppendItem;
@@ -71,19 +71,22 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 		// TODO How can you implement this without if-else statements?
 		try {
-			if (msg.getHeader().getDestination() == -1 && state.isLeader()) {
+			if (msg.getHeader().getDestination() == -1 && serverState.isLeader()) {
 				// this is a broadcast message, leader will ignore this
 				// DO NOTHING
 			} else if (msg.hasBeat()) {
+				@SuppressWarnings("unused")
 				Heartbeat hb = msg.getBeat();
 				logger.info("heartbeat from " + msg.getHeader().getNodeId());
 			} else if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
+				@SuppressWarnings("unused")
 				boolean p = msg.getPing();
 				WorkMessage.Builder rb = WorkMessage.newBuilder();
 				rb.setPing(true);
 				channel.write(rb.build());
 			} else if (msg.hasErr()) {
+				@SuppressWarnings("unused")
 				Failure err = msg.getErr();
 				logger.error("failure from " + msg.getHeader().getNodeId());
 				// PrintUtil.printFailure(err);
@@ -96,44 +99,86 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// sender want to the log!
 				// build log message from hashTable
 				Header.Builder hb = Header.newBuilder();
-				hb.setNodeId(state.getConf().getNodeId());
+				hb.setNodeId(serverState.getConf().getNodeId());
 				hb.setTime(System.currentTimeMillis());
 				hb.setDestination(msg.getHeader().getNodeId());
 				
 				Log.Builder logmsg = Log.newBuilder();
 				logmsg.putAllHashTable(ServerState.hashTable);
 				// write log file back to sender
-				channel.write(logmsg);
+				channel.writeAndFlush(logmsg);
 			} else if (msg.hasRequestAppend() && serverState.isLeader()) {
 				// FOLLOWER want to append, ONLY LEADER should read this message
 				RequestAppendItem request = msg.getRequestAppend();
-				ServerState.hashTable.put(request.getFilename(), request.getLocationList());
+				// get locationList from filename
+				LocationList locationList = ServerState.hashTable.get(request.getFilename());
+				// loop to get chunk_id, update the Node List associated with the chunk_id
+				for(ChunkLocation chunkLoc : locationList.getLocationListList()) {
+					if(chunkLoc.getChunkid() == request.getChunkId()) {
+						chunkLoc.getNodeList().add(request.getNode());
+					}
+				}
+				
 				// append success, notify all FOLLOWERS
 				// build append message to send out
+				Header.Builder hb = Header.newBuilder();
+				hb.setDestination(-1);
+				hb.setNodeId(serverState.getConf().getNodeId());
+				hb.setMaxHops(-1);
+				
 				AppendLogItem.Builder append = AppendLogItem.newBuilder();
 				append.setFilename(request.getFilename());
-				append.setLocationList(request.getLocationList());
+				append.setChunkId(request.getChunkId());
+				append.setNode(request.getNode());
 				
+				WorkMessage.Builder wb = WorkMessage.newBuilder();
+				wb.setAppend(append);
+				wb.setHeader(hb);
+				// send append message to FOLLOWERS
+				serverState.wmforward.addLast(wb.build());
 			} else if (msg.hasRequestRemove() && serverState.isLeader()) {
 				// FOLLOWER want to remove, ONLY LEADER should read this message
 				RequestRemoveItem request = msg.getRequestRemove();
 				ServerState.hashTable.remove(request.getFilename());
 				// remove success, notify all FOLLOWERS
+				// build remove message to send out
+				Header.Builder hb = Header.newBuilder();
+				hb.setDestination(-1);
+				hb.setNodeId(serverState.getConf().getNodeId());
+				hb.setMaxHops(-1);
+				
+				RemoveLogItem.Builder remove = RemoveLogItem.newBuilder();
+				remove.setFilename(request.getFilename());
+				
+				WorkMessage.Builder wb = WorkMessage.newBuilder();
+				wb.setRemove(remove);
+				wb.setHeader(hb);
+				
+				// send remove message to FOLLOWERS
+				serverState.wmforward.addLast(wb.build());
 				
 			} else if (msg.hasAppend() && msg.getHeader().getNodeId() == serverState.getCurrentLeader()) {
 				// only leader should send out this message, check is from
 				// leader?
-				// get chunk_id, and chunk_location from msg and add to
+				// get file, and locationList from msg and add to
 				// hashTable
-				AppendLogItem item = msg.getAppend();
-				ServerState.hashTable.put(item.getFilename(), item.getLocationList());
+				AppendLogItem request = msg.getAppend();
+				// get locationList from filename
+				LocationList locationList = ServerState.hashTable.get(request.getFilename());
+				// loop to get chunk_id, update the Node List associated with the chunk_id
+				for(ChunkLocation chunkLoc : locationList.getLocationListList()) {
+					if(chunkLoc.getChunkid() == request.getChunkId()) {
+						chunkLoc.getNodeList().add(request.getNode());
+					}
+				}
 				
 			} else if (msg.hasRemove() && msg.getHeader().getNodeId() == serverState.getCurrentLeader()) {
 				// only leader should send out this message, check is from
 				// leader?
-				// get chunk_id from msg, remove the chunk_id for hashTable
+				// get filename from msg, remove the filename for hashTable
 				RemoveLogItem item = msg.getRemove();
 				ServerState.hashTable.remove(item.getFilename());
+				
 			}
 		} catch (Exception e) {
 			logger.error("Exception: " + e.getMessage());

@@ -19,20 +19,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import gash.router.container.RoutingConf.RoutingEntry;
+import gash.router.server.FileChunkObject;
 import gash.router.server.ServerState;
+import gash.router.server.WorkInit;
+import pipe.common.Common.AppendLogItem;
 import pipe.common.Common.Header;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import gash.router.server.WorkInit;
 
 public class EdgeMonitor implements EdgeListener, Runnable {
 	protected static Logger logger = LoggerFactory.getLogger("edge monitor");
@@ -97,6 +98,8 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		while (forever) {
 			try {
 				sendHeartBeat();
+				process_wmforward();
+				process_incoming();
 				Thread.sleep(dt);
 
 			} catch (InterruptedException e) {
@@ -133,6 +136,67 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 			}
 		}
 
+	}
+	
+	private void process_wmforward() {
+		for (EdgeInfo ei : this.outboundEdges.map.values()) {
+			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+			if (ei.getChannel() != null && ei.isActive() && !state.wmforward.isEmpty()) {
+				WorkMessage wm = state.wmforward.poll();
+				ei.getChannel().writeAndFlush(wm);
+			} else {
+				try {
+					EventLoopGroup group = new NioEventLoopGroup();
+					WorkInit si = new WorkInit(state, false);
+					Bootstrap b = new Bootstrap();
+					b.group(group).channel(NioSocketChannel.class).handler(si);
+					b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
+					b.option(ChannelOption.TCP_NODELAY, true);
+					b.option(ChannelOption.SO_KEEPALIVE, true);
+
+					ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
+
+					ei.setChannel(channel.channel());
+					ei.setActive(channel.channel().isActive());
+				} catch (Exception e) {
+					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+				}
+			}
+		}
+	}
+	
+	private void process_incoming() {
+		for (EdgeInfo ei : this.outboundEdges.map.values()) {
+			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+			if (ei.getChannel() != null && ei.isActive() && !state.incoming.isEmpty()) {
+				FileChunkObject fco = state.incoming.remove();
+				Header.Builder hb = Header.newBuilder();
+				hb.setDestination(state.getCurrentLeader());
+				hb.setNodeId(state.getConf().getNodeId());
+				hb.setMaxHops(-1);
+				AppendLogItem.Builder append = AppendLogItem.newBuilder();
+				append.setFilename(fco.getFileName());
+				
+				
+			} else {
+				try {
+					EventLoopGroup group = new NioEventLoopGroup();
+					WorkInit si = new WorkInit(state, false);
+					Bootstrap b = new Bootstrap();
+					b.group(group).channel(NioSocketChannel.class).handler(si);
+					b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
+					b.option(ChannelOption.TCP_NODELAY, true);
+					b.option(ChannelOption.SO_KEEPALIVE, true);
+
+					ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
+
+					ei.setChannel(channel.channel());
+					ei.setActive(channel.channel().isActive());
+				} catch (Exception e) {
+					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+				}
+			}
+		}
 	}
 
 	@Override

@@ -46,7 +46,7 @@ message WorkMessage {
       LeaderStatus leader = 8;
       
       GetLog getLog = 11;
-      AddChunk addChunk = 9;
-      RemoveChunk removeChunk = 10;
+      AppendLogItem append = 9;
+      RemoveLogItem remove = 10;
    }
 }

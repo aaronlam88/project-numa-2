@@ -18,17 +18,52 @@ message Header {
     optional int32 max_hops = 10 [default = -1];
 }
 
-message GetLog {
+/**
+ * message use to send log file between servers
+ */
+message Log {
 	map<int64, ChunkLocation> hashTable = 1;
 }
 
-message AddChunk {
-	required int64 chunk_id = 1;
-	required ChunkLocation chunkLocation = 2;
+/** 
+ * message to other to request log
+ * when msg.hasGetLog, server should create Log message
+ * and send the Log message back to sender
+ */
+message GetLog {
+	optional bool isGet = 1;
 }
 
-message RemoveChunk {
-	required int64 chunk_id = 1;
+/**
+ * FOLLOER message to other LEADER to append filename to log
+ * append filename, chunk_id, and chunkLocation to hashTable
+ */
+message RequestAppendItem {
+	required string filename = 1;
+	required int64 chunk_id = 2;
+	required ChunkLocation chunkLocation = 3;
+}
+
+message RequestRemoveItem {
+	required string filename = 1;	
+}
+
+/**
+ * LEADER message to FOLLOWERS to append filename to log
+ * append filename, chunk_id, and chunkLocation to hashTable
+ */
+message AppendLogItem {
+	required string filename = 1;
+	required int64 chunk_id = 2;
+	required ChunkLocation chunkLocation = 3;
+}
+
+/**
+ * LEADER message to FOLLOWERS to remove filename from log
+ * remove filename key from hashTable
+ */
+message RemoveLogItem {
+	required string filename = 1;
 }
 
 message Failure {

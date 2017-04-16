@@ -45,12 +45,12 @@ import pipe.work.Work.WorkState;
  */
 public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	protected static Logger logger = LoggerFactory.getLogger("work");
-	protected ServerState state;
+	protected ServerState serverState;
 	protected boolean debug = true;
 
-	public WorkHandler(ServerState state) {
-		if (state != null) {
-			this.state = state;
+	public WorkHandler(ServerState serverState) {
+		if (serverState != null) {
+			this.serverState = serverState;
 		}
 	}
 
@@ -103,10 +103,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				Log.Builder logmsg = Log.newBuilder();
 				logmsg.putAllHashTable(ServerState.hashTable);
 				// write log file back to sender
-				channel.writeAndFlush(logmsg.build());
-				
-			} else if (msg.hasRequestAppend() && state.isLeader()) {
-				logger.info("append log request from: " + msg.getHeader().getNodeId());
+				channel.write(logmsg);
+			} else if (msg.hasRequestAppend() && serverState.isLeader()) {
 				// FOLLOWER want to append, ONLY LEADER should read this message
 				RequestAppendItem request = msg.getRequestAppend();
 				ServerState.hashTable.put(request.getFilename(), request.getLocationList());
@@ -116,51 +114,21 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				append.setFilename(request.getFilename());
 				append.setLocationList(request.getLocationList());
 				
-				Header.Builder hb = Header.newBuilder();
-				hb.setNodeId(state.getConf().getNodeId());
-				hb.setTime(System.currentTimeMillis());
-				hb.setDestination(-1);
-				
-				WorkMessage.Builder wb = WorkMessage.newBuilder();
-				wb.setAppend(append);
-				wb.setHeader(hb);
-				
-				// send append message as broadcast
-				channel.writeAndFlush(wb.build());
-				
-			} else if (msg.hasRequestRemove() && state.isLeader()) {
-				logger.info("remove log request from: " + msg.getHeader().getNodeId());
+			} else if (msg.hasRequestRemove() && serverState.isLeader()) {
 				// FOLLOWER want to remove, ONLY LEADER should read this message
 				RequestRemoveItem request = msg.getRequestRemove();
 				ServerState.hashTable.remove(request.getFilename());
 				// remove success, notify all FOLLOWERS
 				
-				// build remove message to send out
-				RemoveLogItem.Builder remove = RemoveLogItem.newBuilder();
-				remove.setFilename(request.getFilename());
-				
-				Header.Builder hb = Header.newBuilder();
-				hb.setNodeId(state.getConf().getNodeId());
-				hb.setTime(System.currentTimeMillis());
-				hb.setDestination(-1);
-				
-				WorkMessage.Builder wb = WorkMessage.newBuilder();
-				wb.setRemove(remove);
-				wb.setHeader(hb);
-				
-				//send remove message as broadcast
-				channel.writeAndFlush(wb.build());
-
-			} else if (msg.hasAppend() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
-				logger.info("request log from: " + msg.getHeader().getNodeId());
+			} else if (msg.hasAppend() && msg.getHeader().getNodeId() == serverState.getCurrentLeader()) {
 				// only leader should send out this message, check is from
 				// leader?
 				// get chunk_id, and chunk_location from msg and add to
 				// hashTable
 				AppendLogItem item = msg.getAppend();
 				ServerState.hashTable.put(item.getFilename(), item.getLocationList());
-
-			} else if (msg.hasRemove() && msg.getHeader().getNodeId() == state.getCurrentLeader()) {
+				
+			} else if (msg.hasRemove() && msg.getHeader().getNodeId() == serverState.getCurrentLeader()) {
 				// only leader should send out this message, check is from
 				// leader?
 				// get chunk_id from msg, remove the chunk_id for hashTable
@@ -170,7 +138,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		} catch (Exception e) {
 			logger.error("Exception: " + e.getMessage());
 			Failure.Builder eb = Failure.newBuilder();
-			eb.setId(state.getConf().getNodeId());
+			eb.setId(serverState.getConf().getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());
 			eb.setMessage(e.getMessage());
 			WorkMessage.Builder rb = WorkMessage.newBuilder(msg);
@@ -194,7 +162,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
-		handleMessage(msg, ctx.channel());
+		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId())
+			handleMessage(msg, ctx.channel());
+		else
+			serverState.wmforward.addLast(msg);
 	}
 
 	@Override

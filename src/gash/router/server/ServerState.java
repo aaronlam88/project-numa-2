@@ -8,6 +8,9 @@ import gash.router.container.RoutingConf;
 import gash.router.server.edges.EdgeMonitor;
 import gash.router.server.tasks.TaskList;
 import pipe.common.Common.LocationList;
+import pipe.work.Work.WorkMessage;
+import routing.Pipe.CommandMessage;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class ServerState {
 	private RoutingConf conf;
@@ -17,7 +20,16 @@ public class ServerState {
 	private boolean isLeader;
 	public static Hashtable<String, LocationList> hashTable = new Hashtable<>();
 	private String dataPath;
+	
+	// This queue has info about incoming chunks that has been saved to file system
+	// Worker should report this to leader and get logs updated
 	public Deque<FileChunkObject> incoming;
+	
+	// These queues contain packets that are not destined for me. To e forwarded into network.
+	// Don't forward to same node which sent it.
+	// Can be forwarded by edge monitor. Content is pushed by commandhandler and workerhandler
+	public LinkedBlockingDeque<WorkMessage> wmforward;
+	public LinkedBlockingDeque<CommandMessage> cmforward;
 	
 	public ServerState(String dbpath){
 		if(dbpath != null){
@@ -25,11 +37,13 @@ public class ServerState {
 		}else{
 			dataPath = Paths.get(".", "data").toAbsolutePath().normalize().toString();
 		}
-		
+		wmforward = new LinkedBlockingDeque<WorkMessage>();
 		incoming = new LinkedList<FileChunkObject>();
+
 		currentLeader = -1; // unknown
 		isLeader = false; // doesn't assume itself as leader
 		//if both currentLeader is unknown call for election
+		cmforward = new LinkedBlockingDeque<CommandMessage>();
 	}
 	
 	public String getDbPath(){

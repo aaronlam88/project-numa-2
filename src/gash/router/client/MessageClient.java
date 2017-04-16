@@ -17,7 +17,6 @@ package gash.router.client;
 
 import pipe.common.Common;
 import pipe.common.Common.Failure;
-import pipe.common.Common.Failure.Builder;
 import pipe.common.Common.Header;
 import routing.Pipe.CommandMessage;
 

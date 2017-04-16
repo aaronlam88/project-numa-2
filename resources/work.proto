@@ -44,5 +44,9 @@ message WorkMessage {
       Task task = 6;
       WorkState state = 7;
       LeaderStatus leader = 8;
+      
+      GetLog getLog = 11;
+      AddChunk addChunk = 9;
+      RemoveChunk removeChunk = 10;
    }
 }

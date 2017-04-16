@@ -15,27 +15,30 @@
  */
 package gash.router.server;
 
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-//import gash.router.container.RoutingConf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import pipe.common.Common.Chunk;
 import pipe.common.Common.ChunkLocation;
 import pipe.common.Common.Failure;
-import pipe.common.Common.GetLog;
-import pipe.common.Common.Node;
+import pipe.common.Common.Header;
+import pipe.common.Common.ReadResponse;
+
 import pipe.common.Common.Request;
 import pipe.common.Common.Response;
 import pipe.common.Common.ResponseStatus;
+import pipe.common.Common.TaskType;
 import routing.Pipe.CommandMessage;
+
+import com.google.protobuf.ByteString;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
+import java.io.*;
+import java.nio.file.Paths;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -110,6 +113,117 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 		this.serverState = serverState;
 	}
 
+	private void processReadRequest(CommandMessage msg, Channel channel) throws Exception {
+		Request req = msg.getReq();
+
+		if (req.hasRrb()) {
+
+			FileInputStream fin = null;
+			File file = null;
+
+			Header.Builder hd = Header.newBuilder();
+			hd.setDestination(msg.getHeader().getNodeId());
+			hd.setNodeId(serverState.getConf().getNodeId());
+
+			Chunk.Builder ch = Chunk.newBuilder();
+			ch.setChunkId((int) req.getRrb().getChunkId());
+
+			ReadResponse.Builder rrb = ReadResponse.newBuilder();
+			rrb.setFilename(req.getRrb().getFilename());
+
+			Response.Builder rsp = Response.newBuilder();
+			rsp.setReadResponse(rrb);
+			rsp.setFilename(req.getRrb().getFilename());
+			rsp.setAck(ResponseStatus.Success);
+			rsp.setResponseType(TaskType.READFILE);
+
+			CommandMessage.Builder cm = CommandMessage.newBuilder();
+			cm.setHeader(hd);
+			cm.setResp(rsp);
+
+			if (req.getRrb().hasChunkId()) {
+				// send the chunk data in response
+				// send failure if chunk not found
+				try {
+					String chunkName = new String(req.getRrb().getFilename() + "." + req.getRrb().getChunkId());
+					file = new File(Paths.get(serverState.getDbPath(), chunkName).toString());
+					fin = new FileInputStream(file);
+					byte fileContent[] = new byte[(int) file.length()];
+					fin.read(fileContent);
+					ch.setChunkData(ByteString.copyFrom(fileContent));
+					rrb.setChunk(ch);
+
+				} catch (Exception e) {
+					System.out.println("Error exception" + e);
+					rsp.setAck(ResponseStatus.Fail);
+				} finally {
+					fin.close();
+					file = null;
+					fin = null;
+				}
+			} else {
+				// TODO send file and chunk locations from log in
+				// response
+				// TODO send failure file not found
+
+				// read locations form hashtable and send to client
+				ChunkLocation cha[] = serverState.hashTable.get(req.getRrb().getFilename());
+				if (cha != null) {
+					for (int i = 0; i < cha.length; ++i) {
+						rrb.setChunkLocation(i, cha[i]);
+					}
+				} else {
+					rsp.setAck(ResponseStatus.Fail);
+				}
+			}
+			channel.write(cm.build());
+		} else {
+			throw new Exception("Invalid message type");
+		}
+	}
+
+	public void processWriteRequest(CommandMessage msg, Channel channel) throws Exception {
+		Request req = msg.getReq();
+		if (req.hasRwb()) {
+			if (req.getRwb().hasChunk()) {
+				
+				// save chunk data on local fs
+				// Send a event to worker thread about pending log
+				// update
+				FileOutputStream fout = null;
+				File file = null;
+				try{
+					String chunkName = new String(req.getRwb().getFilename() + "." + req.getRwb().getChunk().getChunkId());
+					file = new File(Paths.get(serverState.getDbPath(), chunkName).toString());
+					file.createNewFile();
+					fout = new FileOutputStream(file);
+					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
+					
+					FileChunkObject nod = new FileChunkObject();
+					nod.host_id = serverState.getConf().getNodeId();
+					nod.hostAddress = serverState.getConf().getHostAddress();
+					nod.port_id = serverState.getConf().getCommandPort();
+					nod.chunk_id = req.getRwb().getChunk().getChunkId();
+					nod.fileName = req.getRwb().getFilename();
+					
+					serverState.incoming.addLast(nod);
+					
+					System.out.println("File writeing " + chunkName);
+				}catch(Exception e){
+					System.out.println("Error exception" + e);
+				}finally{
+					System.out.println("File write ends");
+					fout.close();
+				}
+			} else {
+				// TODO send failure message - no chunk data
+			}
+		} else {
+			throw new Exception("Invalid message type");
+		}
+		
+	}
+
 	public void onEvent(CommandMessageEvent event, long sequence, boolean endOfBatch) {
 		CommandMessage msg = event.msg;
 		Channel channel = event.channel;
@@ -130,29 +244,12 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				Request req = msg.getReq();
 				switch (req.getRequestType()) {
 				case READFILE:
-					if (req.hasRrb()) {
-						if (req.getRrb().hasChunkId()) {
-							
-						} else {
-							// TODO send file and chunk locations from log in
-							// response
-							// send back log.get(req.getRrb().getChunkId());
-							// TODO send failure file not found
-						}
-					} else {
-						// TODO send failure - Invalid read request
-					}
+					processReadRequest(msg, channel);
+
 					break;
+
 				case WRITEFILE:
-					if (req.hasRwb()) {
-						if (req.getRwb().hasChunk()) {
-							// TODO save chunk data on local fs
-						} else {
-							// TODO send failure message - no chunk data
-						}
-					} else {
-						// TODO send failure message - Invalid write request
-					}
+					processWriteRequest(msg, channel);
 					break;
 				// case DELETEFILE:
 				//
@@ -167,48 +264,20 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			} else if (msg.hasResp()) {
 				Response res = msg.getResp();
 				switch (res.getResponseType()) {
-				// case READFILE:
-				// if(res.hasRrb()){
-				// if(res.getRrb().hasChunkId()){
-				// //TODO send the chunk in response
-				// //TODO send failure chunk not found
-				// }else{
-				// //TODO send file and chunk locations from log in response
-				// //TODO send failure file not found
-				// }
-				// }else{
-				// //TODO send failure - Invalid read request
-				// }
-				// break;
-				case WRITEFILE:
-					if (res.hasAck()) {
-						if (res.getAck() == ResponseStatus.Fail) {
-							// TODO send chunk data that is not received by
-							// client for given chunk ids in response
+					case WRITEFILE:
+						if (res.hasAck()) {
+							if (res.getAck() == ResponseStatus.Fail) {
+								// TODO send chunk data that is not received by
+								// client for given chunk ids in response
+							}
 						}
-					}
-					break;
-				// case DELETEFILE:
-				//
-				// break;
-				// case UPDATEFILE:
-				//
-				// break;
-				default:
-					break;
+						break;
+					default:
+						break;
 				}
-			} else if (msg.hasGetLog()) {
-				//TODO return log file
-				GetLog.Builder lb = GetLog.newBuilder();
-			} else if (msg.hasAddChunk()) {
-				//TODO only leader should send out this message, check is from leader?
-				//TODO get chunk_id, and chunk_location from msg and add to hashTable
-			} else if (msg.hasRemoveChunk()) {
-				//TODO only leader should send out this message, check is from leader?
-				//TODO get chunk_id from msg, remove the chunk_id for hashTable
-			}
-			else {
-				// unrecognised message
+			} else {
+				throw new Exception("Invalid message type");
+
 			}
 
 		} catch (Exception e) {

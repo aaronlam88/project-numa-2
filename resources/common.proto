@@ -69,7 +69,7 @@ message WriteResponse {
 message Chunk{
 	required int32 chunk_id = 1;
 	required bytes chunk_data = 6;
-	optional int32 chunk_size=9;
+	optional int32 chunk_size = 9;
 }
 
 message ReadBody{

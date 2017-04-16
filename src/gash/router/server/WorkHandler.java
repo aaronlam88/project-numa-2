@@ -22,6 +22,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import pipe.common.Common.Failure;
+import pipe.common.Common.GetLog;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
@@ -80,6 +81,15 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				Task t = msg.getTask();
 			} else if (msg.hasState()) {
 				WorkState s = msg.getState();
+			}else if (msg.hasGetLog()) {
+				//TODO return log file
+				GetLog.Builder lb = GetLog.newBuilder();
+			} else if (msg.hasAddChunk()) {
+				//TODO only leader should send out this message, check is from leader?
+				//TODO get chunk_id, and chunk_location from msg and add to hashTable
+			} else if (msg.hasRemoveChunk()) {
+				//TODO only leader should send out this message, check is from leader?
+				//TODO get chunk_id from msg, remove the chunk_id for hashTable
 			}
 		} catch (Exception e) {
 			logger.error("Exception: " + e.getMessage());

@@ -15,8 +15,5 @@ message CommandMessage {
       Request req = 6;
       Response resp = 7;
 
-      GetLog getLog = 8;
-      AddChunk addChunk = 9;
-      RemoveChunk removeChunk = 10;
    }
 }

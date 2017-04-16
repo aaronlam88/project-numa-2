@@ -34,6 +34,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class RoutingConf {
 	private int nodeId;
 	private int commandPort;
+	private String hostAddress = "0.0.0.0";
 	private int workPort;
 	private boolean internalNode = true;
 	private int heartbeatDt = 2000;
@@ -66,7 +67,15 @@ public class RoutingConf {
 	public void setNodeId(int nodeId) {
 		this.nodeId = nodeId;
 	}
+	
+	public String getHostAddress() {
+		return hostAddress;
+	}
 
+	public void setHostAddress(String nodeId) {
+		this.hostAddress = nodeId;
+	}
+	
 	public int getCommandPort() {
 		return commandPort;
 	}

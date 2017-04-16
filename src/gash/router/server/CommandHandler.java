@@ -168,9 +168,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					fin = null;
 				}
 			} else {
-				// TODO send file and chunk locations from log in
+				// send file and chunk locations from log in
 				// response
-				// TODO send failure file not found
+				// send failure file not found
 
 				// read locations form hashtable and send to client
 				LocationList locationList= ServerState.hashTable.get(req.getRrb().getFilename());
@@ -208,9 +208,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
 					
 					FileChunkObject nod = new FileChunkObject();
-					nod.host_id = serverState.getConf().getNodeId();
-					nod.hostAddress = serverState.getConf().getHostAddress();
-					nod.port_id = serverState.getConf().getCommandPort();
+					nod.setNode_id(serverState.getConf().getNodeId());
+					nod.setHostAddress(serverState.getConf().getHostAddress());
+					nod.setPort_id(serverState.getConf().getCommandPort());
 					nod.setChunk_id(req.getRwb().getChunk().getChunkId());
 					nod.setFileName(req.getRwb().getFilename());
 					

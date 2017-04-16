@@ -22,8 +22,9 @@ import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.FileChunkObject;
 import gash.router.server.ServerState;
 import gash.router.server.WorkInit;
-import pipe.common.Common.AppendLogItem;
 import pipe.common.Common.Header;
+import pipe.common.Common.Node;
+import pipe.common.Common.RequestAppendItem;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
@@ -96,17 +97,18 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	@Override
 	public void run() {
 		Process_Forward pFoward = new Process_Forward(inboundEdges, outboundEdges, state);
-		pFoward.run();
+		Thread thread1 = new Thread(pFoward);
+		thread1.start();
 		
 		Process_InComming pIncomming = new Process_InComming(inboundEdges, outboundEdges, state);
-		pIncomming.run();
-		
+		Thread thread2 = new Thread(pIncomming);
+		thread2.start();
+
 		while (forever) {
 			try {
 				sendHeartBeat();
 				Thread.sleep(dt);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -119,6 +121,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 				// ei.retry = 0;
 				WorkMessage wm = createHB(ei);
 				ei.getChannel().writeAndFlush(wm);
+				logger.info("send heart beat to " + ei.getRef());
 			} else {
 				try {
 					EventLoopGroup group = new NioEventLoopGroup();
@@ -168,7 +171,9 @@ class Process_Forward implements Runnable {
 	@Override
 	public void run() {
 		while (true) {
-			process_wmforward();
+			if (!state.wmforward.isEmpty()) {
+				process_wmforward();
+			}
 		}
 	}
 
@@ -178,7 +183,7 @@ class Process_Forward implements Runnable {
 
 	private void process_wmforward() {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
-			if (ei.getChannel() != null && ei.isActive() && !state.wmforward.isEmpty()) {
+			if (ei.getChannel() != null && ei.isActive()) {
 				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 				WorkMessage wm = state.wmforward.poll();
 				ei.getChannel().writeAndFlush(wm);
@@ -220,7 +225,9 @@ class Process_InComming implements Runnable {
 	@Override
 	public void run() {
 		while (true) {
-			process_incoming();
+			if (!state.incoming.isEmpty()) {
+				process_incoming();
+			}
 		}
 	}
 
@@ -231,14 +238,28 @@ class Process_InComming implements Runnable {
 	private void process_incoming() {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-			if (ei.getChannel() != null && ei.isActive() && !state.incoming.isEmpty()) {
+			if (ei.getChannel() != null && ei.isActive()) {
 				FileChunkObject fco = state.incoming.remove();
 				Header.Builder hb = Header.newBuilder();
 				hb.setDestination(state.getCurrentLeader());
 				hb.setNodeId(state.getConf().getNodeId());
 				hb.setMaxHops(-1);
-				AppendLogItem.Builder append = AppendLogItem.newBuilder();
+
+				Node.Builder nb = Node.newBuilder();
+				nb.setHost(fco.getHostAddress());
+				nb.setPort(fco.getPort_id());
+				nb.setNodeId(fco.getNode_id());
+
+				RequestAppendItem.Builder append = RequestAppendItem.newBuilder();
 				append.setFilename(fco.getFileName());
+				append.setChunkId(fco.getChunk_id());
+				append.setNode(nb);
+
+				WorkMessage.Builder wb = WorkMessage.newBuilder();
+				wb.setRequestAppend(append.build());
+				wb.setHeader(hb.build());
+
+				ei.getChannel().writeAndFlush(wb.build());
 
 			} else {
 				try {

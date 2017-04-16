@@ -38,7 +38,7 @@ import pipe.work.Work.WorkState;
 /**
  * The message handler processes json messages that are delimited by a 'newline'
  * 
- * TODO replace println with logging!
+ * replace println with logging!
  * 
  * @author gash
  * 
@@ -91,8 +91,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				logger.error("failure from " + msg.getHeader().getNodeId());
 				// PrintUtil.printFailure(err);
 			} else if (msg.hasTask()) {
+				@SuppressWarnings("unused")
 				Task t = msg.getTask();
 			} else if (msg.hasState()) {
+				@SuppressWarnings("unused")
 				WorkState s = msg.getState();
 			} else if (msg.hasGetLog()) {
 				logger.info("request log from: " + msg.getHeader().getNodeId());

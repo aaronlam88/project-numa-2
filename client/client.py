@@ -9,6 +9,7 @@ from datetime import datetime
 from array import *
 from generatedpy.pipe_pb2 import *
 from generatedpy.common_pb2 import *
+from _socket import SHUT_RDWR
 
 
 CHUNK_SIZE = 1024 * 1024 * 10
@@ -38,41 +39,49 @@ class NumaClient:
         '''
         Delete the socket session
         '''
+        self.sd.shutdown(SHUT_RDWR)
         self.sd.close()
 #         self.sd = None
+        self.sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def getReadFileMsg(self, fileName):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
+        cm.header.time = 1
         cm.header.destination = self.target
-        cm.req.requestType = TaskType.READFILE
+        cm.req.requestType = READFILE
         cm.req.rrb.filename = fileName
 
-        print "Read file request created: " + cm
+        print "Read file request created: "
+        print cm
         return cm.SerializeToString()
 
     def getWriteChunkMsg(self, fileName, chunks, index):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
+        cm.header.time = 1
         cm.header.destination = self.target
-        cm.req.requestType = TaskType.WRITEFILE
+        cm.req.requestType = WRITEFILE
         cm.req.rwb.filename = fileName
         cm.req.rwb.chunk.chunk_id = index
-        cm.req.rwb.chunk.num_of_chunks = len(chunks)
+        cm.req.rwb.num_of_chunks = len(chunks)
         cm.req.rwb.chunk.chunk_data = chunks[index]
 
-        print "Write chunk request created for chunk id: " + index
+        print "Write chunk request created for chunk id: " 
+        print index
         return cm.SerializeToString()
 
     def getReadChunkMsg(self, fileName, chunkID):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
+        cm.header.time = 1
         cm.header.destination = self.target
-        cm.req.requestType = TaskType.READFILE
+        cm.req.requestType = READFILE
         cm.req.rrb.filename = fileName
         cm.req.rrb.chunk_id = chunkID
 
-        print "Read chunk request created: " + cm
+        print "Read chunk request created: "
+        print cm
         return cm.SerializeToString()
 
     def getFileChunks(self, file):
@@ -96,6 +105,7 @@ class NumaClient:
         return cm.SerializeToString()
 
     def processPingMsg(self, msg, timefirst):
+        print "Processing ping reply"
         cm = CommandMessage()
         cm.ParseFromString(msg)
 #         delta = datetime.now().time().time() - timefirst.time()
@@ -110,10 +120,12 @@ class NumaClient:
 #         self.sd.flush()
 
     def processReadFileResp(self, msg):
+        print "Processing read file response"
         cm = CommandMessage()
         cm.ParseFromString(msg)
+        print cm
         locs = {}
-        if cm.resp.ack == ResponseStatus.Success:
+        if cm.resp.ack == Success:
             filename = cm.resp.filename
             chunkd = {}
             for chunk in cm.resp.readResponse.chunk_location:
@@ -129,9 +141,10 @@ class NumaClient:
         return locs
 
     def processReadChunkResp(self, msg):
+        print "Processing read chunk response"
         cm = CommandMessage()
         cm.ParseFromString(msg)
-        if cm.resp.ack == ResponseStatus.Success:
+        if cm.resp.ack == Success:
             filename = cm.resp.filename
             data = cm.resp.readResponse.chunk.chunk_data
             # filename += cm.resp.readResponse.chunk.chunk_id
@@ -143,7 +156,7 @@ class NumaClient:
         else:
             print "Fail response received."
 
-    def receiveMsg(self, n):
+    def receiveMsg(self):
         buf = ''
         len_buf = self.sd.recv(4)
         msg_len = struct.unpack('>L', len_buf)[0]

@@ -34,8 +34,8 @@
 		<mkdir dir="${build.dir}" />
 
 		<javac destdir="${build.dir}" debug="true" deprecation="false" includeantruntime="false" optimize="false" failonerror="true">
-		            <src path="${basedir}/generated" />
-					<classpath refid="project.classpath" />
+			<src path="${basedir}/generated" />
+			<classpath refid="project.classpath" />
 		</javac>
 
 		<javac destdir="${build.dir}" debug="true" deprecation="false" optimize="false" includeantruntime="false" failonerror="true">
@@ -59,42 +59,50 @@
 		</junit>
 	</target>
 
-	<target name="hello" depends="build">
+	<target name="hello" depends="init">
 		<java fork="yes" classname="gash.router.app.DemoApp">
 			<classpath refid="project.classpath" />
 		</java>
 	</target>
 
-	<target name="server1" depends="build">
+	<target name="server1" depends="init">
 		<java fork="yes" classname="gash.router.server.MessageApp">
 			<classpath refid="project.classpath" />
 			<!--<arg value="resources/routing.conf" />-->
 			<arg value="runtime/route-1.conf" />
 		</java>
 	</target>
-	
-	<target name="server2" depends="build">
-			<java fork="yes" classname="gash.router.server.MessageApp">
-				<classpath refid="project.classpath" />
-				<!--<arg value="resources/routing.conf" />-->
-				<arg value="runtime/route-2.conf" />
-			</java>
-		</target>
-	
-	<target name="server5" depends="build">
-			<java fork="yes" classname="gash.router.server.MessageApp">
-				<classpath refid="project.classpath" />
-				<!--<arg value="resources/routing.conf" />-->
-				<arg value="runtime/route-5.conf" />
-			</java>
-		</target>
-	
-	<target name="server6" depends="build">
-			<java fork="yes" classname="gash.router.server.MessageApp">
-				<classpath refid="project.classpath" />
-				<!--<arg value="resources/routing.conf" />-->
-				<arg value="runtime/route-6.conf" />
-			</java>
-		</target>
+
+	<target name="server2" depends="init">
+		<java fork="yes" classname="gash.router.server.MessageApp">
+			<classpath refid="project.classpath" />
+			<!--<arg value="resources/routing.conf" />-->
+			<arg value="runtime/route-2.conf" />
+		</java>
+	</target>
+
+	<target name="server5" depends="init">
+		<java fork="yes" classname="gash.router.server.MessageApp">
+			<classpath refid="project.classpath" />
+			<!--<arg value="resources/routing.conf" />-->
+			<arg value="runtime/route-5.conf" />
+		</java>
+	</target>
+
+	<target name="server6" depends="init">
+		<java fork="yes" classname="gash.router.server.MessageApp">
+			<classpath refid="project.classpath" />
+			<!--<arg value="resources/routing.conf" />-->
+			<arg value="runtime/route-6.conf" />
+		</java>
+	</target>
+
+	<target name="loner" depends="init">
+		<java fork="yes" classname="gash.router.server.MessageApp">
+			<classpath refid="project.classpath" />
+			<!--<arg value="resources/routing.conf" />-->
+			<arg value="runtime/route-7.conf" />
+		</java>
+	</target>
 
 </project>

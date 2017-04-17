@@ -437,20 +437,21 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				hb.setDestination(msg.getHeader().getNodeId());
 				
 				Log.Builder logmsg = Log.newBuilder();
-				logmsg.putAllHashTable(state.hashTable);
+				logmsg.putAllHashTable(ServerState.hashTable);
 				// write log file back to sender
 				channel.writeAndFlush(logmsg);
 			} else if (msg.hasRequestAppend() && state.isLeader()) {
 				// FOLLOWER want to append, ONLY LEADER should read this message
 				RequestAppendItem request = msg.getRequestAppend();
 				// get locationList from filename
-				LocationList locationList = state.hashTable.get(request.getFilename());
+				LocationList locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with the chunk_id
 				for(ChunkLocation chunkLoc : locationList.getLocationListList()) {
 					if(chunkLoc.getChunkid() == request.getChunkId()) {
 						chunkLoc.getNodeList().add(request.getNode());
 					}
 				}
+				ServerState.hashTable.put(request.getFilename(), locationList);
 				
 				// append success, notify all FOLLOWERS
 				// build append message to send out
@@ -458,6 +459,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				hb.setDestination(-1);
 				hb.setNodeId(state.getConf().getNodeId());
 				hb.setMaxHops(-1);
+				hb.setTime(System.currentTimeMillis());
 				
 				AppendLogItem.Builder append = AppendLogItem.newBuilder();
 				append.setFilename(request.getFilename());
@@ -472,13 +474,14 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			} else if (msg.hasRequestRemove() && state.isLeader()) {
 				// FOLLOWER want to remove, ONLY LEADER should read this message
 				RequestRemoveItem request = msg.getRequestRemove();
-				state.hashTable.remove(request.getFilename());
+				ServerState.hashTable.remove(request.getFilename());
 				// remove success, notify all FOLLOWERS
 				// build remove message to send out
 				Header.Builder hb = Header.newBuilder();
 				hb.setDestination(-1);
 				hb.setNodeId(state.getConf().getNodeId());
 				hb.setMaxHops(-1);
+				hb.setTime(System.currentTimeMillis());
 				
 				RemoveLogItem.Builder remove = RemoveLogItem.newBuilder();
 				remove.setFilename(request.getFilename());
@@ -497,7 +500,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// hashTable
 				AppendLogItem request = msg.getAppend();
 				// get locationList from filename
-				LocationList locationList = state.hashTable.get(request.getFilename());
+				LocationList locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with the chunk_id
 				for(ChunkLocation chunkLoc : locationList.getLocationListList()) {
 					if(chunkLoc.getChunkid() == request.getChunkId()) {
@@ -510,7 +513,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// leader?
 				// get filename from msg, remove the filename for hashTable
 				RemoveLogItem item = msg.getRemove();
-				state.hashTable.remove(item.getFilename());
+				ServerState.hashTable.remove(item.getFilename());
 				
 			}
 			//sSystem.out.println("gotcha you bastard");

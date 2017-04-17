@@ -97,19 +97,23 @@ public class ServerState {
 	}
 
 	public int getCurrentLeader() {
+		this.currentLeader=status.getLeaderId();
 		return currentLeader;
 	}
 
 	public void setCurrentLeader(int currentLeader) {
 		this.currentLeader = currentLeader;
+		status.setLeaderId(this.currentLeader);
 	}
 
 	public boolean isLeader() {
+		this.isLeader=status.getLeader();
 		return isLeader;
 	}
 
 	public void setLeader(boolean isLeader) {
 		this.isLeader = isLeader;
+		status.setLeader(this.isLeader);
  	}
 
 	public ServerElectionStatus getStatus(){
@@ -121,11 +125,13 @@ public class ServerState {
 	}
 
 	public int getCurrentTerm() {
+		this.currentTerm=status.getCurrentTerm();
 		return currentTerm;
 	}
 
 	public void setCurrentTerm(int currentTerm) {
 		this.currentTerm = currentTerm;
+		status.setCurrentTerm(this.currentTerm);
 	}
 
 	public boolean isVoted() {

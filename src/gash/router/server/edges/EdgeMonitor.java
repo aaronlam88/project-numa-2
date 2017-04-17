@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.FileChunkObject;
-import gash.router.server.ServerState;
 import gash.router.server.WorkInit;
+import gash.router.server.ServerState;
 import pipe.common.Common.Header;
 import pipe.common.Common.Node;
 import pipe.common.Common.RequestAppendItem;
@@ -29,12 +29,15 @@ import pipe.work.Work.Heartbeat;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
 import routing.Pipe.CommandMessage;
+
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import gash.router.server.WorkInit;
 
 public class EdgeMonitor implements EdgeListener, Runnable {
 	protected static Logger logger = LoggerFactory.getLogger("edge monitor");
@@ -81,7 +84,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setDestination(-1);
 		hb.setTime(System.currentTimeMillis());
-		
+
 		if(state.isLeader()) {
 			hb.setMaxHops(-1);
 		} else {
@@ -92,7 +95,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		wb.setHeader(hb);
 		wb.setBeat(bb);
 		wb.setSecret(121316546);
-
+		
 		return wb.build();
 	}
 
@@ -102,6 +105,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	@Override
 	public void run() {
+
 		Process_WorkForward wFoward = new Process_WorkForward(inboundEdges, outboundEdges, state);
 		Thread thread1 = new Thread(wFoward);
 		thread1.start();
@@ -118,7 +122,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 			try {
 				sendHeartBeat();
 				Thread.sleep(dt);
+
 			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -126,9 +132,8 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	private void sendHeartBeat() {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
-			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive()) {
-				// ei.retry = 0;
+				//ei.retry = 0;
 				WorkMessage wm = createHB(ei);
 				ei.getChannel().writeAndFlush(wm);
 				logger.info("send heart beat to " + ei.getRef());
@@ -163,10 +168,22 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	public synchronized void onRemove(EdgeInfo ei) {
 		// TODO ?
 	}
-}
+
+	public void setOutboundEdges(EdgeList outboundEdges){
+		this.outboundEdges=outboundEdges;
+	}
+
+	public EdgeList getOutboundEdges(){
+		return this.outboundEdges;
+	}
+
+	public void setInboundEdges(EdgeList inboundEdges){
+		this.inboundEdges=inboundEdges;
+	}
+
 
 class Process_WorkForward implements Runnable {
-	protected static Logger logger = LoggerFactory.getLogger("Process_WorkForward");
+	//protected static Logger logger = LoggerFactory.getLogger("Process_WorkForward");
 
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
@@ -221,7 +238,7 @@ class Process_WorkForward implements Runnable {
 
 
 class Process_CommandForward implements Runnable {
-	protected static Logger logger = LoggerFactory.getLogger("Process_CommandForward");
+	//private static Logger logger = LoggerFactory.getLogger("Process_CommandForward");
 
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
@@ -275,7 +292,7 @@ class Process_CommandForward implements Runnable {
 }
 
 class Process_InComming implements Runnable {
-	protected static Logger logger = LoggerFactory.getLogger("Process_InComming");
+//	private static Logger logger = LoggerFactory.getLogger("Process_InComming");
 
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
@@ -347,4 +364,9 @@ class Process_InComming implements Runnable {
 		}
 	}
 
+}
+
+	public EdgeList getInboundEdges(){
+		return this.inboundEdges;
+	}
 }

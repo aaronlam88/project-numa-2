@@ -67,4 +67,7 @@ public class EdgeList {
 	public void clear() {
 		map.clear();
 	}
+	public HashMap<Integer,EdgeInfo> getMap(){
+		return map;
+	}
 }

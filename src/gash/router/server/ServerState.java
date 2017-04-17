@@ -1,28 +1,41 @@
 package gash.router.server;
 
-import java.nio.file.Paths;
-import java.util.Deque;
-import java.util.Hashtable;
+import java.nio.file.Paths;		
+import java.util.Deque;		
+import java.util.Hashtable;		
 import java.util.LinkedList;
+
 import gash.router.container.RoutingConf;
 import gash.router.server.edges.EdgeMonitor;
 import gash.router.server.tasks.TaskList;
-import pipe.common.Common.LocationList;
-import pipe.work.Work.WorkMessage;
-import routing.Pipe.CommandMessage;
+import gash.router.server.election.ServerElectionStatus;
+
+import pipe.common.Common.LocationList;		
+import gash.router.server.election.ServerElectionStatus;
+import pipe.work.Work.WorkMessage;		
+import routing.Pipe.CommandMessage;		
 import java.util.concurrent.LinkedBlockingDeque;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServerState {
+	protected static Logger logger = LoggerFactory.getLogger("ServerState");
+
+	//TODO no need for currentLeader and isLeader as those are included in the ServerElectionStatus. also currentTerm and Voted
+	//change their setter getters
+
 	// The Log file for the system. Record filename and it location.
-	public static Hashtable<String, LocationList> hashTable = new Hashtable<>();
-	
+
+
 	private RoutingConf conf;
 	private EdgeMonitor emon;
 	private TaskList tasks;
-	private String dataPath;
-	
+	private ServerElectionStatus status;
+
 	private int currentLeader; //current leader node id
 	private boolean isLeader;
+	public static Hashtable<String, LocationList> hashTable = new Hashtable<>();
+	private String dataPath;
 	private int currentTerm;
 	private boolean voted; 
 	
@@ -42,21 +55,23 @@ public class ServerState {
 		}else{
 			dataPath = Paths.get(".", "data").toAbsolutePath().normalize().toString();
 		}
-		
-		incoming = new LinkedList<FileChunkObject>();
-		
 		wmforward = new LinkedBlockingDeque<WorkMessage>();
-		cmforward = new LinkedBlockingDeque<CommandMessage>();
-		
+		incoming = new LinkedList<FileChunkObject>();
+
 		currentLeader = -1; // unknown
 		isLeader = false; // doesn't assume itself as leader
-		//if both currentLeader is unknown and !isLeader call for election
+		//if both currentLeader is unknown call for election
+		cmforward = new LinkedBlockingDeque<CommandMessage>();
+
+		this.status = new ServerElectionStatus();
+
+		logger.info("ServerElectionStatus values initialized");
 	}
 	
 	public String getDbPath(){
 		return this.dataPath;
 	}
-	
+
 	public RoutingConf getConf() {
 		return conf;
 	}
@@ -95,6 +110,14 @@ public class ServerState {
 
 	public void setLeader(boolean isLeader) {
 		this.isLeader = isLeader;
+ 	}
+
+	public ServerElectionStatus getStatus(){
+		return status;
+	}
+
+	public void setStatus(ServerElectionStatus status){
+		this.status=status;
 	}
 
 	public int getCurrentTerm() {
@@ -112,4 +135,7 @@ public class ServerState {
 	public void setVoted(boolean voted) {
 		this.voted = voted;
 	}
+
+
+
 }

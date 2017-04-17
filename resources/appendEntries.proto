@@ -1,0 +1,17 @@
+syntax = "proto2";
+option optimize_for = SPEED;
+option java_package = "pipe.appendEntries";
+
+message AppendEntry{
+	required int32 term=1;
+	required int32 leader_id=2;
+	optional int32 prevLogIndex=3;  //index of candidate's last log entry
+	optional int32 prevLogTerm=4;
+    repeated string entries =5;
+	optional int32 leaderCommit=6;   // leaders commit index
+}
+
+message AppendEntriesResult{
+	required int32 term=2;
+	required bool success=3;
+}

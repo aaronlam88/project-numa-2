@@ -35,6 +35,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import gash.router.server.election.Follower;
 
 public class MessageServer {
 	protected static Logger logger = LoggerFactory.getLogger("server");
@@ -46,7 +47,9 @@ public class MessageServer {
 
 	protected RoutingConf conf;
 	protected boolean background = false;
-    protected ServerState myState;
+	 protected ServerState myState;
+	 protected Follower follower=null;
+
 	/**
 	 * initialize the server with a configuration of it's resources
 	 * 
@@ -67,7 +70,7 @@ public class MessageServer {
 		StartWorkCommunication comm = new StartWorkCommunication(conf);
 		logger.info("Work starting");
 		this.myState = comm.getServerState();
-		
+
 		// We always start the worker in the background
 		Thread cthread = new Thread(comm);
 		cthread.start();
@@ -131,7 +134,7 @@ public class MessageServer {
 	private static class StartCommandCommunication implements Runnable {
 		RoutingConf conf;
 		ServerState state;
-		
+
 		public StartCommandCommunication(ServerState state) {
 			this.conf = state.getConf();
 			this.state = state;
@@ -187,6 +190,7 @@ public class MessageServer {
 	 */
 	private static class StartWorkCommunication implements Runnable {
 		ServerState state;
+		 Follower follower=null;
 
 		public StartWorkCommunication(RoutingConf conf) {
 			if (conf == null)
@@ -201,12 +205,18 @@ public class MessageServer {
 			EdgeMonitor emon = new EdgeMonitor(state);
 			Thread t = new Thread(emon);
 			t.start();
+
+			follower =new Follower(state);
+			Thread th = new Thread(follower);
+			th.start();
+
+			logger.info("started the follower thread");
 		}
-		
+
 		public ServerState getServerState(){
 			return this.state;
 		}
-		
+
 		public void run() {
 			// construct boss and worker threads (num threads = number of cores)
 

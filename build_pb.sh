@@ -40,3 +40,5 @@ protoc --proto_path="${project_base}/resources" --python_out="${project_base}/cl
 protoc --proto_path="${project_base}/resources" --python_out="${project_base}/client/generatedpy" "${project_base}/resources/election.proto"
 protoc --proto_path="${project_base}/resources" --python_out="${project_base}/client/generatedpy" "${project_base}/resources/pipe.proto"
 protoc --proto_path="${project_base}/resources" --python_out="${project_base}/client/generatedpy" "${project_base}/resources/work.proto"
+protoc --proto_path=${project_base}/resources --java_out=${project_base}/generated ${project_base}/resources/voteRequest.proto
+protoc --proto_path=${project_base}/resources --java_out=${project_base}/generated ${project_base}/resources/appendEntries.proto

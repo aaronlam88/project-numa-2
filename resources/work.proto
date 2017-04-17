@@ -4,6 +4,8 @@ option java_package = "pipe.work";
 
 import "common.proto";
 import "election.proto";
+import "voteRequest.proto";
+import "appendEntries.proto";
 
 message WorkState {
    required int32 enqueued = 1;
@@ -44,11 +46,17 @@ message WorkMessage {
       Task task = 6;
       WorkState state = 7;
       LeaderStatus leader = 8;
-      
+
       GetLog getLog = 9;
       RequestAppendItem requestAppend = 10;
       RequestRemoveItem requestRemove = 11;
       AppendLogItem append = 12;
       RemoveLogItem remove = 13;
+
+      VoteReq vr_msg=14;
+      AppendEntry ae_msg=15;
+
+      Results vr_result=16;
+      AppendEntriesResult ae_result=17;
    }
 }

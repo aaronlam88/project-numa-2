@@ -32,6 +32,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "conf")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class RoutingConf {
+	private int totalNodes;
 	private int nodeId;
 	private int commandPort;
 	private String hostAddress = "0.0.0.0";
@@ -67,7 +68,6 @@ public class RoutingConf {
 	public void setNodeId(int nodeId) {
 		this.nodeId = nodeId;
 	}
-	
 	public String getHostAddress() {
 		return hostAddress;
 	}
@@ -75,7 +75,7 @@ public class RoutingConf {
 	public void setHostAddress(String nodeId) {
 		this.hostAddress = nodeId;
 	}
-	
+
 	public int getCommandPort() {
 		return commandPort;
 	}
@@ -116,12 +116,21 @@ public class RoutingConf {
 		this.routing = conf;
 	}
 
+	public void setTotalNodes(int totalNodes){
+		this.totalNodes=totalNodes;
+	}
+
+	public int getTotalNodes(){
+		return totalNodes;
+	}
+
 	@XmlRootElement(name = "entry")
 	@XmlAccessorType(XmlAccessType.PROPERTY)
 	public static final class RoutingEntry {
 		private String host;
 		private int port;
 		private int id;
+		
 
 		public RoutingEntry() {
 		}
@@ -155,6 +164,8 @@ public class RoutingConf {
 		public void setId(int id) {
 			this.id = id;
 		}
+
+
 
 	}
 }

@@ -1,0 +1,15 @@
+syntax = "proto2";
+option optimize_for = SPEED;
+option java_package = "pipe.voteRequest";
+
+message VoteReq{
+	required int32 term=1;
+	required int32 candidate_id=2;
+	optional int32 lastLogIndex=3;  //index of candidate's last log entry
+	optional int32 lastLogTerm=4;   // index of candidate's last log entry
+}
+
+message Results{
+	required int32 term=1;
+	required bool voteGranted=2;
+}

@@ -43,6 +43,7 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -218,26 +219,41 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
 
 					if (serverState.isLeader()) {
-						Header.Builder hb = Header.newBuilder();
-						hb.setDestination(-1);
-						hb.setNodeId(serverState.getConf().getNodeId());
-						hb.setMaxHops(-1);
-						
-						AppendLogItem.Builder append = AppendLogItem.newBuilder();
-						append.setFilename(req.getRwb().getFilename());
-						append.setChunkId(req.getRwb().getChunk().getChunkId());
-						
+						// build <filename, LocationList>
+						String filename = req.getRwb().getFilename();
+						int chunkId = req.getRwb().getChunk().getChunkId();
 						Node.Builder nb = Node.newBuilder();
 						nb.setHost(serverState.getConf().getHostAddress());
 						nb.setPort(serverState.getConf().getCommandPort());
 						nb.setNodeId(serverState.getConf().getNodeId());
+
+						ChunkLocation.Builder clb = ChunkLocation.newBuilder();
+						clb.setChunkid(chunkId);
+						clb.setNode(clb.getNodeCount(), nb.build());
+
+						LocationList.Builder lb = LocationList.newBuilder();
+						lb.addLocationList(clb.build());
 						
-						append.setNode(nb);
+						// put <filename, LocationlList> onto The Log
+						ServerState.hashTable.put(filename, lb.build());
 						
+						
+						// construct a work message to send out to Followers
+						Header.Builder hb = Header.newBuilder();
+						hb.setDestination(-1);
+						hb.setNodeId(serverState.getConf().getNodeId());
+						hb.setMaxHops(-1);
+						hb.setTime(System.currentTimeMillis());
+
+						AppendLogItem.Builder append = AppendLogItem.newBuilder();
+						append.setFilename(filename);
+						append.setChunkId(chunkId);
+						append.setNode(nb.build());
+
 						WorkMessage.Builder wb = WorkMessage.newBuilder();
 						wb.setAppend(append);
 						wb.setHeader(hb);
-						
+						// push work message to wmforward queue
 						serverState.wmforward.addLast(wb.build());
 					} else {
 						FileChunkObject nod = new FileChunkObject();

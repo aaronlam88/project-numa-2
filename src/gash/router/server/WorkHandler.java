@@ -209,10 +209,17 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
-		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId())
+		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
+			// this message is for me, I should read it
 			handleMessage(msg, ctx.channel());
-		else
+		} else if (msg.getHeader().getDestination() == -1) {
+			// this is broadcast message, should have a look
+			handleMessage(msg, ctx.channel());
+		}
+		else {
+			// this is a private message for someone else, just forward it
 			serverState.wmforward.addLast(msg);
+		}
 	}
 
 	@Override

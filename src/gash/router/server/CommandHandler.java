@@ -32,6 +32,7 @@ import pipe.common.Common.Request;
 import pipe.common.Common.Response;
 import pipe.common.Common.ResponseStatus;
 import pipe.common.Common.TaskType;
+import pipe.work.Work.WorkMessage;
 import routing.Pipe.CommandMessage;
 
 import com.google.protobuf.ByteString;
@@ -246,6 +247,10 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 		try {
 			if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
+				boolean p = msg.getPing();
+				CommandMessage.Builder rb = CommandMessage.newBuilder();
+				rb.setPing(true);
+				channel.write(rb.build());
 			} else if (msg.hasMessage()) {
 				logger.info(msg.getMessage());
 			} else if (msg.hasReq()) {

@@ -51,15 +51,22 @@ class UserClient:
                 nc.createSession()
                 fr = nc.getReadFileMsg(filename)
                 nc.sendData(fr)
-                locs = nc.processReadFileResp(nc.receiveMsg(MAX_MSG_SIZE))
+                locs = nc.processReadFileResp(nc.receiveMsg())
+                nc.deleteSession()
+                
                 if(filename in locs.keys()):
                     ch = locs[filename]
                     for id in range(0, ch.keys()):
-                        nc.sendData(nc.getReadChunkMsg(filename, id))
-                        nc.processReadChunkResp(nc.receiveMsg(MAX_MSG_SIZE))
+                        nodes = ch[id].keys()
+                        n = nodes[0]
+                        client = NumaClient(ch[id][n]['address'], ch[id][n]['port'] , n)
+                        client.createSession()
+                        client.sendData(client.getReadChunkMsg(filename, id))
+                        client.processReadChunkResp(client.receiveMsg())
+                        client.deleteSession()
                 else:
                     print "File not available"
-                nc.deleteSession()
+                
 
             elif choice1 == "4":
                 # DELETE
@@ -68,7 +75,7 @@ class UserClient:
                 nc.createSession()
                 firsttime = datetime.now().time()
                 nc.sendData(req)
-                pingrply = nc.receiveMsg(MAX_MSG_SIZE)
+                pingrply = nc.receiveMsg()
                 nc.processPingMsg(pingrply, firsttime)
                 nc.deleteSession()
             else:

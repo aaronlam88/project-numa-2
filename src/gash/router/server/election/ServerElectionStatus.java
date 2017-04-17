@@ -8,6 +8,7 @@ public class ServerElectionStatus{
 	protected static Logger logger = LoggerFactory.getLogger("ServerElectionStatus");
 
 	private int currentTerm;   // latest term server has seen (initialized to on first boot, increases monotonically)
+	private boolean isVotedFor;
 	private int votedFor;      // candidateId that received vote in current term (or null if none)
 	private int totalVotesRecievedForThisTerm;
 	private ArrayList<Log> log;      //  each entry contains command for state machine, and term when entry was received by leader (first index is 1)
@@ -26,6 +27,7 @@ public class ServerElectionStatus{
 	private int leaderId;     //initialized to zero which means the server initially has no leader and in a follower state, tyring to conenct to leader
 	private boolean electionTimeout=true;
 	private boolean heartbeatTimeout=false;
+	private int totalAppendEntrySuccessForThisTerm=0;
 
 
 
@@ -34,6 +36,8 @@ public class ServerElectionStatus{
 		logger.info("ServerElectionStatus values initialized");
 		
 		this.currentTerm=0;
+		this.isVotedFor=false;
+		this.lastTermInLog=1;
 		this.commitIndex=0;
 		this.lastAplliedIndex=0;
 		this.leader=false;
@@ -42,6 +46,7 @@ public class ServerElectionStatus{
 		this.leaderId=0;
 		this.nextIndex=0;
 		this.prevIndex=1;
+		this.totalAppendEntrySuccessForThisTerm=0;
 	}
 
 	public boolean isElectionTimeout() {
@@ -51,6 +56,15 @@ public class ServerElectionStatus{
 
 	public void setElectionTimeout(boolean et) {
 		this.electionTimeout = et;
+	}
+
+	public boolean isIsVotedFor() {
+		return isVotedFor;
+	}
+
+
+	public void setIsVotedFor(boolean vf) {
+		this.isVotedFor = vf;
 	}
 
 
@@ -92,6 +106,13 @@ public class ServerElectionStatus{
 		this.totalVotesRecievedForThisTerm = tvrt;
 	}
 
+	public int getTotalAppendEntrySuccessForThisTerm(){
+		return totalAppendEntrySuccessForThisTerm;
+	}
+
+	public void setTotalAppendEntrySuccessForThisTerm(int tae_term){
+		this.totalAppendEntrySuccessForThisTerm=tae_term;
+	}
 
 	public ArrayList<Log> getLog() {
 		return log;

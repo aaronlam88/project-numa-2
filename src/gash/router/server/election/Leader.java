@@ -27,8 +27,10 @@ import org.slf4j.LoggerFactory;
 import java.io.PrintWriter;
 import java.io.File;
 
+import gash.router.container.RoutingConf.RoutingEntry;
 
-public class Leader{
+
+public class Leader implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("leader");
 
 	private boolean isLeader=false;
@@ -37,22 +39,63 @@ public class Leader{
 	private int currentTerm;
 	private int lastAppliedIndex;
 	private int lastCommitIndex;
+
 	private EdgeList outboundEdges;
+	private EdgeList inboundEdges;
+	private long dt = 2000;
+	private boolean forever = true;
 
 	public Leader(ServerState state){
 		this.state=state;
 		this.isLeader=state.getStatus().getLeader();
 		this.leaderId=state.getStatus().getLeaderId();
+
+		System.out.println("leader true or not::  "+isLeader);
+
+		if (state == null)
+			throw new RuntimeException("state is null");
+
+		this.outboundEdges = new EdgeList();
+		this.inboundEdges = new EdgeList();
+		
+		state.getStatus().setTotalVotesRecievedForThisTerm(0);
+
+		if (state.getConf().getRouting() != null) {
+			for (RoutingEntry e : state.getConf().getRouting()) {
+				this.outboundEdges.addNode(e.getId(), e.getHost(), e.getPort());
+			}
+		}
+
+		// cannot go below 2 sec
+		if (state.getConf().getHeartbeatDt() > this.dt)
+			this.dt = state.getConf().getHeartbeatDt();
+	}
+
+	@Override
+	public void run() {
+		while (this.isLeader && this.leaderId==state.getConf().getNodeId()) {
+			try {
+				System.out.println("append etnries in leader run method");
+				sendAppendEntries();
+				Thread.sleep(dt);
+
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public void sendAppendEntries(){
+		System.out.println("inside sendAppendEntries method");
 
 		if(isLeader){
-
+			System.out.println("inside sendAppendEntries method:: isleader true");
 			this.currentTerm=state.getStatus().getCurrentTerm();
+			state.getStatus().setTotalAppendEntrySuccessForThisTerm(0);
 
 			EdgeMonitor em = new EdgeMonitor(state);
-			this.outboundEdges= em.getOutboundEdges();
+			//this.outboundEdges= em.getOutboundEdges();
 
 
 			for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
@@ -135,7 +178,7 @@ public class Leader{
 			pw.write(sb.toString());
 			
 			pw.close();
-			logger.info("Leader wrote the log to its own fiel in leader class");
+			System.out.println("Leader wrote the log to its own fiel in leader class");
 
 		}
 		catch(Exception e){

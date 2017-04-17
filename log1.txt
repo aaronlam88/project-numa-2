@@ -1,0 +1,969 @@
+** starting server from /home/hiral/Documents/gash/project-numa-2 **
+server home = /home/hiral/Documents/gash/project-numa-2
+-e 
+** config: runtime/route-1.conf **
+
+server closing
+started election
+leaderid is zero
+1492469988510
+true
+Candidate true or not::  true
+Leader true or not::  false
+Current LeaderID: 0
+gets into startElection method
+gets into startElection method
+reached here exactly where you turn the loop off
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492469992559
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 1
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 1
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+only for me message; i will handle it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492469993214
+Dest: 1
+
+Work: Unknown
+   Sec:  121316549
+entered the try
+0
+result of vote request recieved from node: 2
+term voted for:1
+issucess: true
+we recieved majority of the count and declaring leader: nodeid: 1
+
+setting voted_for boolean as false
+leader true or not::  true
+append etnries in leader run method
+inside sendAppendEntries method
+inside sendAppendEntries method:: isleader true
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492469993789
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492469994312
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492469995040
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492469995587
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492469995707
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492469995794
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+append etnries in leader run method
+inside sendAppendEntries method
+inside sendAppendEntries method:: isleader true
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+i sent this message and i am not processign
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492469997050
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492469997322
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492469997798
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492469998590
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492469998710
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492469999054
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492469999805
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470000322
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470001066
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470001592
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470001713
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470001809
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470003070
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470003323
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470003810
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470004602
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470004713
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470005074
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470005813
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470006325
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470007075
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470007610
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470007714
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470007834
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470009081
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470009332
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470009841
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470010614
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470010722
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470011082
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470011846
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470012334
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470013093
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470013618
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470013722
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470013847
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470015102
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470015342
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470015848
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470016618
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470016723
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470017103
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470017858
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470018350
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470019111
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470019622
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470019742
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470019859
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+i sent this message and i am not processign
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470021116
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   5
+Time: 1492470021354
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470021870
+Dest: -1
+
+Work: Unknown
+   Sec:  121316548
+entered the try
+2
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   6
+Time: 1492470022626
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+i hit channelread 
+message has been passed and now we will have a look at it
+
+-------------------------------------------------------
+ID:   2
+Time: 1492470022743
+Hops: 1
+Dest: -1
+
+Work: Unknown
+   Sec:  121316546
+entered the try
+0
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470023118
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+i hit channelread 
+i sent this message and i am not processign
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470025147
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off
+gets into startElection method
+node id is: 1
+conencted message
+header {
+  node_id: 1
+  time: 1492470027148
+  destination: -1
+}
+secret: 121316548
+vr_msg {
+  term: 2
+  candidate_id: 1
+  lastLogIndex: 0
+  lastLogTerm: 0
+}
+
+you did turn off

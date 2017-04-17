@@ -87,8 +87,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 
 		try {
-			logger.info("entered the try");
-			logger.info(Integer.toString(msg.getVrMsg().getCandidateId()));
+			System.out.println("entered the try");
+			System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
 			
 			if (msg.getHeader().getDestination() == -1 && state.isLeader()) {
 												
@@ -98,7 +98,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				logger.debug("heartbeat from " + msg.getHeader().getNodeId());
 			} else if (msg.hasPing()) {
 				@SuppressWarnings("unused")
-				//logger.info("ping from " + msg.getHeader().getNodeId());
+				//System.out.println("ping from " + msg.getHeader().getNodeId());
 				boolean p = msg.getPing();
 				WorkMessage.Builder rb = WorkMessage.newBuilder();
 				rb.setPing(true);
@@ -117,10 +117,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				WorkState s = msg.getState();
 			}
 			else if(msg.hasVrMsg()){
-				logger.info("got vote request from node: "+ msg.getVrMsg().getCandidateId());
-				logger.info("got vote request for term : "+ msg.getVrMsg().getTerm());
-				logger.info("last log index recieved: " +msg.getVrMsg().getLastLogIndex());
-				logger.info("last log term recieved: " + msg.getVrMsg().getLastLogTerm());
+				System.out.println("got vote request from node: "+ msg.getVrMsg().getCandidateId());
+				System.out.println("got vote request for term : "+ msg.getVrMsg().getTerm());
+				System.out.println("last log index recieved: " +msg.getVrMsg().getLastLogIndex());
+				System.out.println("last log term recieved: " + msg.getVrMsg().getLastLogTerm());
 
 				 int receivedTerm=msg.getVrMsg().getTerm();
 				 int thisTerm=state.getStatus().getCurrentTerm();
@@ -129,12 +129,13 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				 int receivedLogIndex = msg.getVrMsg().getLastLogIndex();
 				 int thisLogIndex = state.getStatus().getCommitIndex();
 
-				 state.getStatus().setHeartbeatTimeout(false);
+				 state.getStatus().setElectionTimeout(false);
+				 state.getStatus().setHeartbeatTimeout(true);
 
 					if(receivedTerm>=thisTerm && receivedTerm>=thisLogTerm){
 						if(receivedLogIndex>=thisLogIndex){
 
-
+							System.out.println("conditions in vote request is approvable by this server");
 							Header.Builder hb = Header.newBuilder();
 							hb.setNodeId(state.getConf().getNodeId());
 							hb.setDestination(msg.getVrMsg().getCandidateId());
@@ -150,25 +151,40 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							wm.setSecret(121316549);
 
 							// start timeout after voting
-							if(state.getStatus().getFollower()){
+							if(!state.getStatus().isIsVotedFor()){
 
+							System.out.println("sending the message back to requesting node");
+							state.getStatus().setFollower(true);
 							state.getStatus().setNextIndex(state.getStatus().getNextIndex()+1);
 							state.getStatus().setHeartbeatTimeout(true);
-							Follower follower =new Follower(state);
-							Thread th = new Thread(follower);
-							th.start();
+
+							state.getStatus().setFollower(true);
+							state.getStatus().setCandidate(false);
+							state.getStatus().setLeader(false);
+							state.getStatus().setIsVotedFor(true);
+							
+
+							WorkMessage pr = wm.build();
+
+							System.out.println(pr.toString());
+
+							channel.writeAndFlush(pr);
 
 						}
 
-							channel.write(wm.build());
+						Follower follower =new Follower(state);
+							Thread th = new Thread(follower);
+							th.start();
+
+							
 						}
 					}
 			}
 			else if(msg.hasVrResult()){
 				// this section deals with the response recived from the vote request in leader election
-				logger.info("result of vote request recieved from node: "+msg.getHeader().getNodeId());
-				logger.info("term voted for:" + msg.getVrResult().getTerm());
-				logger.info("issucess: " + msg.getVrResult().getVoteGranted());
+				System.out.println("result of vote request recieved from node: "+msg.getHeader().getNodeId());
+				System.out.println("term voted for:" + msg.getVrResult().getTerm());
+				System.out.println("issucess: " + msg.getVrResult().getVoteGranted());
 
 				//increase the vote count and decide whether it is the majority or not, if yes the ndeclare th enode to be leader
 				//and change the serverstate
@@ -200,14 +216,21 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					if(majorityCount){
 
 						//we received the majority count //declare the node leader // call AppendEntry messages
+						System.out.println("we recieved majority of the count and declaring leader: nodeid: "+ thisNode);
+						System.out.println("");
+						System.out.println("setting voted_for boolean as false");
 
+						state.getStatus().setIsVotedFor(false);
 						state.getStatus().setFollower(false);
 						state.getStatus().setCandidate(false);
 						state.getStatus().setLeader(true);
 						state.getStatus().setLeaderId(thisNode);
+						state.getStatus().setCurrentTerm(votedForTerm);
+						state.getStatus().setLastTermInLog(votedForTerm-1);
 
-						Leader lead = new Leader(this.state);
-						lead.sendAppendEntries();
+						Leader lead = new Leader(state);
+						Thread t = new Thread(lead);
+						t.run();
 						
 					}
 					else{
@@ -224,7 +247,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 
 						Candidate cn= new Candidate(state);
-						cn.startElection();
+						Thread t= new Thread(cn);
+						t.run();
 					}
 
 				}
@@ -236,14 +260,15 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				//when AppendEntry resonse id to be send back
 				//TODO add other fault tolerant checks, update index and set look for hearbeat timeout
 
-				logger.info("got vote request from node: "+ msg.getAeMsg().getLeaderId());
-				logger.info("got vote request for term : "+ msg.getAeMsg().getTerm());
-				logger.info("last log index recieved: " +msg.getAeMsg().getPrevLogIndex());
-				logger.info("last log term recieved: " + msg.getAeMsg().getPrevLogTerm());
+				System.out.println("got appendEntry from node: "+ msg.getAeMsg().getLeaderId());
+				System.out.println("got appendEntry for term : "+ msg.getAeMsg().getTerm());
+				System.out.println("leader commit recieved: " +msg.getAeMsg().getLeaderCommit());
+				System.out.println("last log term recieved: " + msg.getAeMsg().getPrevLogTerm());
 
 
 				//start the timer flag
 				state.getStatus().setHeartbeatTimeout(false);
+				state.getStatus().setElectionTimeout(false);
 
 
 				 int recievedTerm=msg.getAeMsg().getTerm();
@@ -257,7 +282,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				if(recievedTerm>=thisTerm && recievedTerm>=thisLogTerm){
 					if(receivedLogIndex>=thisLogIndex){
 
+						// update the realted fields, update commit index. if we use 2 phase commit, we will have last applied index as well
 
+						state.getStatus().setCommitIndex(thisLogIndex+1);
+					
 						// create file if there is none else append the entry
 
 						BufferedWriter bw = null;
@@ -280,7 +308,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							}
 							bw.write("\n");
 
-							logger.info("Entry appended in Workhandler for hearbeat success");
+							System.out.println("Entry appended in Workhandler for hearbeat success");
 
 						}
 						catch(Exception e){
@@ -332,7 +360,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						}
 
-						channel.write(wm.build());
+						channel.writeAndFlush(wm.build());
 					}
 				}
 
@@ -342,10 +370,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			else if(msg.hasAeResult()){
 				//TODO if more than n/2 +1 success then
 
-				logger.info("AppendEntryResutl recived in workhandler");
-				logger.info("result of Append Etnry recieved from node: "+msg.getHeader().getNodeId());
-				logger.info("term appended entry for:" + msg.getAeResult().getTerm());
-				logger.info("issucess: " + msg.getAeResult().getSuccess());
+				System.out.println("AppendEntryResutl recived in workhandler");
+				System.out.println("result of Append Etnry recieved from node: "+msg.getHeader().getNodeId());
+				System.out.println("term appended entry for:" + msg.getAeResult().getTerm());
+				System.out.println("issucess: " + msg.getAeResult().getSuccess());
 
 
 				 int followerNodeId =msg.getHeader().getNodeId();
@@ -353,17 +381,54 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				 int successForTerm = msg.getAeResult().getTerm();
 				 int currentTerm = state.getStatus().getCurrentTerm();
 				 boolean isSuccess=msg.getAeResult().getSuccess(); 
+				 int totalNodes=state.getConf().getTotalNodes();
+				 int totalSuccess=state.getStatus().getTotalAppendEntrySuccessForThisTerm();
+
+				 state.getStatus().setTotalAppendEntrySuccessForThisTerm(totalSuccess+1);
+
+				 boolean majorityCount=false;
 				
 
-				if(isSuccess){
-					//TODO what if half the node doesnt reply??
+					if(totalNodes%2==0){
+						if(totalSuccess+1>=(totalNodes/2)+1){
+								majorityCount=true;
+						}
+					}
+					else{
+						if(totalSuccess+1>=(totalNodes/2)){
+							majorityCount=true;	
+						}
+					}
+				
+
+				if(!majorityCount){
 					
-					logger.info("successful entry form above node");
+					
+					System.out.println("not majority success in AppendEntry");
+						state.getStatus().setFollower(false);
+						state.getStatus().setCandidate(true);
+						state.getStatus().setLeader(false);
+						state.getStatus().setLeaderId(0);
+						state.getStatus().setTotalVotesRecievedForThisTerm(0);
+						state.getStatus().setElectionTimeout(true);
+						state.getStatus().setHeartbeatTimeout(false);
+						state.getStatus().setNextIndex(0);
+						state.getStatus().setPrevIndex(1);
+
+
+						Candidate cn= new Candidate(state);
+						Thread t= new Thread(cn);
+						t.run();
+
+
+				}
+				else{
+					//set few terms
 				}
 
 			}
 			else if (msg.hasGetLog()) {
-				logger.info("request log from: " + msg.getHeader().getNodeId());
+				System.out.println("request log from: " + msg.getHeader().getNodeId());
 				// sender want to the log!
 				// build log message from hashTable
 				Header.Builder hb = Header.newBuilder();
@@ -448,7 +513,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				state.hashTable.remove(item.getFilename());
 				
 			}
-			logger.info("gotcha you bastard");
+			//sSystem.out.println("gotcha you bastard");
 		} catch (Exception e) {
 			// TODO add logging
 			logger.error("Exception: " + e.getMessage()); 
@@ -458,7 +523,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			eb.setMessage(e.getMessage());
 			WorkMessage.Builder rb = WorkMessage.newBuilder(msg);
 			rb.setErr(eb);
-			channel.write(rb.build());
+			channel.writeAndFlush(rb.build());
 		}
 
 		System.out.flush();
@@ -477,12 +542,20 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
+		System.out.println("i hit channelread ");
 
-		if(msg.getHeader().getDestination() == state.getConf().getNodeId() ||  msg.getHeader().getNodeId()!= state.getConf().getNodeId())
+		if(msg.getHeader().getDestination() == state.getConf().getNodeId() ){
+			System.out.println("only for me message; i will handle it");
 			handleMessage(msg, ctx.channel());
-		else if (msg.getHeader().getDestination() == -1) {
-			state.wmforward.addLast(msg);					// this is broadcast message, should have a look
+		}
+		else if (msg.getHeader().getDestination() == -1 &&  msg.getHeader().getNodeId()!= state.getConf().getNodeId() ) {
+			state.wmforward.addLast(msg);	
+			System.out.println("message has been passed and now we will have a look at it");				// this is broadcast message, should have a look
 			handleMessage(msg, ctx.channel());
+		}
+		else if(msg.getHeader().getNodeId()==state.getConf().getNodeId()){
+			System.out.println("i sent this message and i am not processign");
+			 // msg.release();
 		}
 		else {
 			// this is a private message for someone else, just forward it

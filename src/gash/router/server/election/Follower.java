@@ -40,11 +40,12 @@ public class Follower implements Runnable{
 					public void run(){
 						try{
 							while(state.getStatus().isElectionTimeout()){
-								logger.info("started election");
+								System.out.println("started election");
 								if(state.getStatus().getLeaderId()==0){
 									boolean pos=true;
 									boolean neg=false;
-									logger.info("leaderid is zero");
+									System.out.println("leaderid is zero");
+									System.out.println(System.currentTimeMillis());
 
 									//ServerElectionStatus status=;	
 									state.getStatus().setFollower(neg);
@@ -66,7 +67,7 @@ public class Follower implements Runnable{
 							e.printStackTrace();
 						}
 					}
-				}, ThreadLocalRandom.current().nextInt(150, 300));  // start the process after this many ms, and chec kthe result
+				}, ThreadLocalRandom.current().nextInt(1000, 5000));  // start the process after this many ms, and chec kthe result
 
 			}
 			catch(Exception e){
@@ -136,7 +137,7 @@ public class Follower implements Runnable{
 							e.printStackTrace();
 						}
 					}
-				}, ThreadLocalRandom.current().nextInt(150, 300)); 
+				}, ThreadLocalRandom.current().nextInt(3000, 5000)); 
 
 			}
 			catch(Exception e){

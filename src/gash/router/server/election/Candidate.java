@@ -30,6 +30,7 @@ import gash.router.container.RoutingConf.RoutingEntry;
 public class Candidate implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("Candidate");
 
+	private boolean isLeader=false;
 	private boolean isCandidate;
 	private int currentTerm;
 	private int currentNodeId;
@@ -53,13 +54,18 @@ public class Candidate implements Runnable{
 		this.inboundEdges = new EdgeList();
 
 		this.isCandidate=state.getStatus().getCandidate();
-		logger.info("Candidate true or not::  "+isCandidate);
+		
+
+		System.out.println("Candidate true or not::  "+isCandidate);
+		System.out.println("Leader true or not::  "+isLeader);
+		System.out.println("Current LeaderID: "+ leaderId);
+
 		state.getStatus().setTotalVotesRecievedForThisTerm(0);
 		this.state=state;
 
 		if (state.getConf().getRouting() != null) {
 			for (RoutingEntry e : state.getConf().getRouting()) {
-				outboundEdges.addNode(e.getId(), e.getHost(), e.getPort());
+				this.outboundEdges.addNode(e.getId(), e.getHost(), e.getPort());
 			}
 		}
 
@@ -72,7 +78,11 @@ public class Candidate implements Runnable{
 
 	@Override
 	public void run() {
-		while (forever) {
+
+		this.isLeader=state.getStatus().getLeader();
+		this.leaderId=state.getStatus().getLeaderId();
+
+		while (forever || !this.isLeader) {
 			try {
 				startElection();
 				Thread.sleep(2000);
@@ -82,10 +92,16 @@ public class Candidate implements Runnable{
 				e.printStackTrace();
 			}
 		}
+
+		if(this.isLeader && this.leaderId==state.getConf().getNodeId()){
+			Leader lead = new Leader(state);
+			Thread t = new Thread();
+			t.run();
+		}
 	}
 
 	public void startElection(){
-			logger.info("gets int o startElection method");
+			System.out.println("gets into startElection method");
 
 		if(isCandidate){
 
@@ -97,7 +113,7 @@ public class Candidate implements Runnable{
 			state.getStatus().setTotalVotesRecievedForThisTerm(state.getStatus().getTotalVotesRecievedForThisTerm()+1);
 
 			EdgeMonitor em = new EdgeMonitor(state);
-			this.outboundEdges= em.getOutboundEdges();
+			//this.outboundEdges= em.getOutboundEdges();
 
 
 			for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
@@ -106,8 +122,8 @@ public class Candidate implements Runnable{
 					//ei.retry = 0;
 					WorkMessage wm = createVoteRequest();
 					ei.getChannel().writeAndFlush(wm);
-					logger.info("you did turn off");
-					this.forever=false;
+					System.out.println("you did turn off");
+					//this.forever=false;
 				} else {
 					try {
 						EventLoopGroup group = new NioEventLoopGroup();
@@ -122,7 +138,7 @@ public class Candidate implements Runnable{
 
 						ei.setChannel(channel.channel());
 						ei.setActive(channel.channel().isActive());
-						logger.info("reached here exactly where you turn the loop off");
+						System.out.println("reached here exactly where you turn the loop off");
 						
 					} catch (Exception e) {
 						logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
@@ -153,9 +169,11 @@ public class Candidate implements Runnable{
 		wm.setVrMsg(vr);
 		wm.setSecret(121316548);
 
-		logger.info("conencted message");
+		System.out.println("conencted message");
+		WorkMessage pr = wm.build();
 
-		return wm.build();
+		System.out.println(pr.toString());
+		return pr ;
 	}
 	
 }

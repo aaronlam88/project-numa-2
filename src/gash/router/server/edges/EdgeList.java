@@ -18,7 +18,7 @@ package gash.router.server.edges;
 import java.util.HashMap;
 
 public class EdgeList {
-	protected HashMap<Integer, EdgeInfo> map = new HashMap<Integer, EdgeInfo>();
+	private HashMap<Integer, EdgeInfo> map = new HashMap<Integer, EdgeInfo>();
 
 	public EdgeList() {
 	}

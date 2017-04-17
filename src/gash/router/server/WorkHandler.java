@@ -98,7 +98,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				logger.debug("heartbeat from " + msg.getHeader().getNodeId());
 			} else if (msg.hasPing()) {
 				@SuppressWarnings("unused")
-				//System.out.println("ping from " + msg.getHeader().getNodeId());
+				//logger.info("ping from " + msg.getHeader().getNodeId());
 				boolean p = msg.getPing();
 				WorkMessage.Builder rb = WorkMessage.newBuilder();
 				rb.setPing(true);
@@ -136,6 +136,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						if(receivedLogIndex>=thisLogIndex){
 
 							System.out.println("conditions in vote request is approvable by this server");
+							
 							Header.Builder hb = Header.newBuilder();
 							hb.setNodeId(state.getConf().getNodeId());
 							hb.setDestination(msg.getVrMsg().getCandidateId());
@@ -153,35 +154,36 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							// start timeout after voting
 							if(!state.getStatus().isIsVotedFor()){
 
-							System.out.println("sending the message back to requesting node");
-							state.getStatus().setFollower(true);
-							state.getStatus().setNextIndex(state.getStatus().getNextIndex()+1);
-							state.getStatus().setHeartbeatTimeout(true);
+								System.out.println("sending the message back to requesting node");
+								state.getStatus().setFollower(true);
+								state.getStatus().setNextIndex(state.getStatus().getNextIndex()+1);
+								state.getStatus().setHeartbeatTimeout(true);
 
-							state.getStatus().setFollower(true);
-							state.getStatus().setCandidate(false);
-							state.getStatus().setLeader(false);
-							state.getStatus().setIsVotedFor(true);
-							
+								state.getStatus().setFollower(true);
+								state.getStatus().setCandidate(false);
+								state.getStatus().setLeader(false);
+								state.getStatus().setIsVotedFor(true);
+								
 
-							WorkMessage pr = wm.build();
+								WorkMessage pr = wm.build();
 
-							System.out.println(pr.toString());
+								System.out.println(pr.toString());
 
-							channel.writeAndFlush(pr);
+								channel.writeAndFlush(pr);
 
+							}
+
+							Follower follower =new Follower(state);
+								Thread th = new Thread(follower);
+								th.start();
+
+								
+							}
 						}
-
-						Follower follower =new Follower(state);
-							Thread th = new Thread(follower);
-							th.start();
-
-							
-						}
-					}
-			}
+				}
 			else if(msg.hasVrResult()){
 				// this section deals with the response recived from the vote request in leader election
+				//we received the majority count //declare the node leader // call AppendEntry messages
 				System.out.println("result of vote request recieved from node: "+msg.getHeader().getNodeId());
 				System.out.println("term voted for:" + msg.getVrResult().getTerm());
 				System.out.println("issucess: " + msg.getVrResult().getVoteGranted());
@@ -308,6 +310,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							}
 							bw.write("\n");
 
+
 							System.out.println("Entry appended in Workhandler for hearbeat success");
 
 						}
@@ -427,6 +430,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				}
 
 			}
+
 			else if (msg.hasGetLog()) {
 				System.out.println("request log from: " + msg.getHeader().getNodeId());
 				// sender want to the log!
@@ -516,7 +520,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				ServerState.hashTable.remove(item.getFilename());
 				
 			}
-			//sSystem.out.println("gotcha you bastard");
+			//logger.info("gotcha you bastard");
 		} catch (Exception e) {
 			// TODO add logging
 			logger.error("Exception: " + e.getMessage()); 
@@ -545,6 +549,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
+
 		System.out.println("i hit channelread ");
 
 		if(msg.getHeader().getDestination() == state.getConf().getNodeId() ){

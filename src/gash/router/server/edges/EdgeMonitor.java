@@ -131,7 +131,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	}
 
 	private void sendHeartBeat() {
-		for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
+		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
 				//ei.retry = 0;
 				WorkMessage wm = createHB(ei);
@@ -209,7 +209,7 @@ class Process_WorkForward implements Runnable {
 	}
 
 	private void process_wmforward() {
-		for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
+		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
 				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 				WorkMessage wm = state.wmforward.poll();
@@ -264,7 +264,7 @@ class Process_CommandForward implements Runnable {
 	}
 
 	private void process_cmforward() {
-		for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
+		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
 				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 				CommandMessage cm = state.cmforward.poll();
@@ -318,7 +318,7 @@ class Process_InComming implements Runnable {
 	}
 
 	private void process_incoming() {
-		for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
+		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive()) {
 				FileChunkObject fco = state.incoming.remove();

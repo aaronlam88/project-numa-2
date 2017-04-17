@@ -1,11 +1,15 @@
 package gash.router.server.election;
 
 import gash.router.server.ServerState;
+import java.util.Timer;
+import java.util.concurrent.ThreadLocalRandom;
 import gash.router.server.edges.EdgeMonitor;
 import gash.router.server.edges.EdgeList;
 import gash.router.server.edges.EdgeInfo;
 
+
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -15,6 +19,7 @@ import gash.router.server.WorkInit;
 
 import pipe.common.Common.Header;
 import pipe.voteRequest.VoteRequest.VoteReq;
+import pipe.appendEntries.AppendEntries.AppendEntry;
 import pipe.work.Work.WorkMessage;
 
 import org.slf4j.Logger;
@@ -22,25 +27,25 @@ import org.slf4j.LoggerFactory;
 
 import gash.router.container.RoutingConf.RoutingEntry;
 
-public class Candidate implements Runnable {
+public class Candidate implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("Candidate");
 
 	private boolean isLeader=false;
 	private boolean isCandidate;
 	private int currentTerm;
 	private int currentNodeId;
-	private int votedFor;
+	private int votedFor; 
 	private boolean leader;
-	private int leaderId;
+	private int leaderId; 
 	private int totalVotesRecievedForThisTerm;
 	private ServerState state;
-
+	
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
 	private long dt = 2000;
 	private boolean forever = true;
 
-	public Candidate(ServerState state) {
+	public Candidate(ServerState state){
 
 		if (state == null)
 			throw new RuntimeException("state is null");
@@ -48,7 +53,6 @@ public class Candidate implements Runnable {
 		this.outboundEdges = new EdgeList();
 		this.inboundEdges = new EdgeList();
 
-<<<<<<< HEAD
 		this.isCandidate=state.getStatus().getCandidate();
 		
 
@@ -56,12 +60,8 @@ public class Candidate implements Runnable {
 		System.out.println("Leader true or not::  "+isLeader);
 		System.out.println("Current LeaderID: "+ leaderId);
 
-=======
-		this.isCandidate = state.getStatus().getCandidate();
-		logger.info("Candidate true or not::  " + isCandidate);
->>>>>>> 73bfcd0f437ab850d8eecbe7162fad919677cefe
 		state.getStatus().setTotalVotesRecievedForThisTerm(0);
-		this.state = state;
+		this.state=state;
 
 		if (state.getConf().getRouting() != null) {
 			for (RoutingEntry e : state.getConf().getRouting()) {
@@ -72,8 +72,9 @@ public class Candidate implements Runnable {
 		// cannot go below 2 sec
 		if (state.getConf().getHeartbeatDt() > this.dt)
 			this.dt = state.getConf().getHeartbeatDt();
-
+		
 	}
+
 
 	@Override
 	public void run() {
@@ -99,46 +100,30 @@ public class Candidate implements Runnable {
 		}
 	}
 
-<<<<<<< HEAD
 	public void startElection(){
 			System.out.println("gets into startElection method");
 
 		if(isCandidate){
-=======
-	public void startElection() {
-		logger.info("gets int o startElection method");
->>>>>>> 73bfcd0f437ab850d8eecbe7162fad919677cefe
 
-		if (isCandidate) {
 
-			this.currentTerm = state.getStatus().getCurrentTerm();
-			this.currentNodeId = state.getConf().getNodeId();
+			this.currentTerm=state.getStatus().getCurrentTerm();
+			this.currentNodeId=state.getConf().getNodeId();
 
 			state.getStatus().setVotedFor(currentNodeId);
-			state.getStatus()
-					.setTotalVotesRecievedForThisTerm(state.getStatus().getTotalVotesRecievedForThisTerm() + 1);
+			state.getStatus().setTotalVotesRecievedForThisTerm(state.getStatus().getTotalVotesRecievedForThisTerm()+1);
 
 			EdgeMonitor em = new EdgeMonitor(state);
-<<<<<<< HEAD
 			//this.outboundEdges= em.getOutboundEdges();
 
-=======
-			this.outboundEdges = em.getOutboundEdges();
->>>>>>> 73bfcd0f437ab850d8eecbe7162fad919677cefe
 
 			for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
-				// System.out.println(ei.getChannel().toString());
+				//System.out.println(ei.getChannel().toString());
 				if (ei.getChannel() != null && ei.isActive()) {
-					// ei.retry = 0;
+					//ei.retry = 0;
 					WorkMessage wm = createVoteRequest();
 					ei.getChannel().writeAndFlush(wm);
-<<<<<<< HEAD
 					System.out.println("you did turn off");
 					//this.forever=false;
-=======
-					logger.info("you did turn off");
-					this.forever = false;
->>>>>>> 73bfcd0f437ab850d8eecbe7162fad919677cefe
 				} else {
 					try {
 						EventLoopGroup group = new NioEventLoopGroup();
@@ -153,13 +138,8 @@ public class Candidate implements Runnable {
 
 						ei.setChannel(channel.channel());
 						ei.setActive(channel.channel().isActive());
-<<<<<<< HEAD
 						System.out.println("reached here exactly where you turn the loop off");
 						
-=======
-						logger.info("reached here exactly where you turn the loop off");
-
->>>>>>> 73bfcd0f437ab850d8eecbe7162fad919677cefe
 					} catch (Exception e) {
 						logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 					}
@@ -169,18 +149,19 @@ public class Candidate implements Runnable {
 		}
 	}
 
-	public WorkMessage createVoteRequest() {
+
+	public WorkMessage createVoteRequest(){
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(this.state.getConf().getNodeId());
 		hb.setDestination(-1);
 		hb.setTime(System.currentTimeMillis());
 
 		VoteReq.Builder vr = VoteReq.newBuilder();
-		vr.setTerm(this.currentTerm + 1);
-		System.out.println("node id is: " + this.currentNodeId);
+		vr.setTerm(this.currentTerm+1);
+		System.out.println("node id is: "+ this.currentNodeId);
 		vr.setCandidateId(this.currentNodeId);
 		vr.setLastLogIndex(this.state.getStatus().getCommitIndex());
-		vr.setLastLogTerm(this.state.getStatus().getLastTermInLog());
+		vr.setLastLogTerm(this.state.getStatus().getLastTermInLog())	;
 
 		WorkMessage.Builder wm = WorkMessage.newBuilder();
 		wm.setPing(true);
@@ -194,5 +175,5 @@ public class Candidate implements Runnable {
 		System.out.println(pr.toString());
 		return pr ;
 	}
-
+	
 }

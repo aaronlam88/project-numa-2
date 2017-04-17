@@ -26,16 +26,17 @@ class UserClient:
             if (choice1 is None):
                 continue
             elif choice1 == "5":
-                print("Bye")
-                nc.deleteSession()
+                print "Bye"
+#                 nc.deleteSession()
                 forever = False
             elif choice1 == "1":
-                print("Performing write operation!!!")
-                print("Enter the aboulute path of your file:")
+                print "Performing write operation!!!"
+                print "Enter the aboulute path of your file:"
                 filenameComplete = raw_input()
                 chunks = nc.getFileChunks(filenameComplete)
                 filename = os.path.split(filenameComplete)[1]
-                print("Chunks created : " + len(chunks))
+                print "Chunks created : "
+                print len(chunks)
                 index = 0
                 nc.createSession()
                 for chunk in chunks:
@@ -45,8 +46,8 @@ class UserClient:
                 nc.deleteSession()
 
             elif choice1 == "2":
-                print("Performing read operation!!!")
-                print("Enter the name of the file: ")
+                print "Performing read operation!!!"
+                print "Enter the name of the file: "
                 filename = raw_input()
                 nc.createSession()
                 fr = nc.getReadFileMsg(filename)
@@ -56,7 +57,7 @@ class UserClient:
                 
                 if(filename in locs.keys()):
                     ch = locs[filename]
-                    for id in range(0, ch.keys()):
+                    for id in range(0, len(ch.keys())):
                         nodes = ch[id].keys()
                         n = nodes[0]
                         client = NumaClient(ch[id][n]['address'], ch[id][n]['port'] , n)
@@ -70,7 +71,7 @@ class UserClient:
 
             elif choice1 == "4":
                 # DELETE
-                print("Performing ping operation!!!")
+                print "Performing ping operation!!!"
                 req = nc.getPingMsg()
                 nc.createSession()
                 firsttime = datetime.now().time()
@@ -79,8 +80,8 @@ class UserClient:
                 nc.processPingMsg(pingrply, firsttime)
                 nc.deleteSession()
             else:
-                print("Wrong Selection")
-        print("\nGoodbye\n")
+                print "Wrong Selection"
+        print "\nGoodbye\n"
 
 
 if __name__ == '__main__':

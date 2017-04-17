@@ -11,6 +11,16 @@
 
 project_base="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+
+
+if [ -d ${project_base}/generated ]; then
+echo "removing contents of ${project_base}/data"
+rm -r ${project_base}/data/*
+else
+ echo "creating directory ${project_base}/data"
+ mkdir "${project_base}/data"
+fi
+
 # which protoc that you built (if not in your path)
 #PROTOC_HOME=/usr/local/protobuf-2.5.0/
 

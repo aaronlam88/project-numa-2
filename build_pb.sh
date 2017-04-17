@@ -21,6 +21,7 @@ else
  mkdir "${project_base}/data"
 fi
 
+
 # which protoc that you built (if not in your path)
 #PROTOC_HOME=/usr/local/protobuf-2.5.0/
 
@@ -40,6 +41,7 @@ else
   mkdir "${project_base}/client/generatedpy"
 fi
 
+touch ${project_base}/client/generatedpy/__init__.py
 
 protoc --proto_path="${project_base}/resources" --java_out="${project_base}/generated" "${project_base}/resources/common.proto"
 protoc --proto_path="${project_base}/resources" --java_out="${project_base}/generated" "${project_base}/resources/election.proto"

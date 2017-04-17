@@ -78,7 +78,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
 		System.out.println("Channel Read");
-		System.out.println(msg.toString());
+		//System.out.println(msg.toString());
 		if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
@@ -217,8 +217,10 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					file.createNewFile();
 					fout = new FileOutputStream(file);
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
-
+					System.out.println("File writen");
+					serverState.setLeader(true);
 					if (serverState.isLeader()) {
+						System.out.println("Yes leader");
 						// build <filename, LocationList>
 						String filename = req.getRwb().getFilename();
 						int chunkId = req.getRwb().getChunk().getChunkId();
@@ -256,6 +258,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						// push work message to wmforward queue
 						serverState.wmforward.addLast(wb.build());
 					} else {
+						System.out.println("No leader");
 						FileChunkObject nod = new FileChunkObject();
 						nod.setNode_id(serverState.getConf().getNodeId());
 						nod.setHostAddress(serverState.getConf().getHostAddress());
@@ -270,6 +273,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					System.out.println("Error exception" + e);
 				} finally {
 					System.out.println("File write ends");
+					System.out.println(ServerState.hashTable.size());
 					fout.close();
 				}
 			} else {
@@ -369,7 +373,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			channel.writeAndFlush(rb.build());
 		} finally {
 			System.out.flush();
-			channel.close();
+			//channel.close();
 		}
 	}
 }

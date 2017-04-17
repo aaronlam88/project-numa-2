@@ -21,17 +21,20 @@ import org.slf4j.LoggerFactory;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import pipe.common.Common.AppendLogItem;
 import pipe.common.Common.Chunk;
 import pipe.common.Common.ChunkLocation;
 import pipe.common.Common.Failure;
 import pipe.common.Common.Header;
 import pipe.common.Common.LocationList;
+import pipe.common.Common.Node;
 import pipe.common.Common.ReadResponse;
 
 import pipe.common.Common.Request;
 import pipe.common.Common.Response;
 import pipe.common.Common.ResponseStatus;
 import pipe.common.Common.TaskType;
+import pipe.work.Work.WorkMessage;
 import routing.Pipe.CommandMessage;
 
 import com.google.protobuf.ByteString;
@@ -75,7 +78,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
 		System.out.println("Channel Read");
 		System.out.println(msg.toString());
-		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId()){
+		if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
 				CommandMessageEvent event = ringBuffer.get(sequence);
@@ -83,10 +86,10 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 			} finally {
 				ringBuffer.publish(sequence);
 			}
-		}else{
+		} else {
 			serverState.cmforward.addLast(msg);
 		}
-		
+
 	}
 
 	@Override
@@ -133,7 +136,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			hd.setDestination(msg.getHeader().getNodeId());
 			hd.setNodeId(serverState.getConf().getNodeId());
 			hd.setTime(System.currentTimeMillis());
-			
+
 			Chunk.Builder ch = Chunk.newBuilder();
 			ch.setChunkId((int) req.getRrb().getChunkId());
 
@@ -181,7 +184,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				LocationList locationList = ServerState.hashTable.get(req.getRrb().getFilename());
 
 				if (locationList != null) {
-					
+
 					for (ChunkLocation chunkLocation : locationList.getLocationListList()) {
 						rrb.setChunkLocation(chunkLocation.getChunkid(), chunkLocation);
 					}
@@ -200,32 +203,56 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 		Request req = msg.getReq();
 		if (req.hasRwb()) {
 			if (req.getRwb().hasChunk()) {
-				
+
 				// save chunk data on local fs
 				// Send a event to worker thread about pending log
 				// update
 				FileOutputStream fout = null;
 				File file = null;
-				try{
-					String chunkName = new String(req.getRwb().getFilename() + "." + req.getRwb().getChunk().getChunkId());
+				try {
+					String chunkName = new String(
+							req.getRwb().getFilename() + "." + req.getRwb().getChunk().getChunkId());
 					file = new File(Paths.get(serverState.getDbPath(), chunkName).toString());
 					file.createNewFile();
 					fout = new FileOutputStream(file);
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
-					
-					FileChunkObject nod = new FileChunkObject();
-					nod.setNode_id(serverState.getConf().getNodeId());
-					nod.setHostAddress(serverState.getConf().getHostAddress());
-					nod.setPort_id(serverState.getConf().getCommandPort());
-					nod.setChunk_id(req.getRwb().getChunk().getChunkId());
-					nod.setFileName(req.getRwb().getFilename());
-					
-					serverState.incoming.addLast(nod);
-					
+
+					if (serverState.isLeader()) {
+						Header.Builder hb = Header.newBuilder();
+						hb.setDestination(-1);
+						hb.setNodeId(serverState.getConf().getNodeId());
+						hb.setMaxHops(-1);
+						
+						AppendLogItem.Builder append = AppendLogItem.newBuilder();
+						append.setFilename(req.getRwb().getFilename());
+						append.setChunkId(req.getRwb().getChunk().getChunkId());
+						
+						Node.Builder nb = Node.newBuilder();
+						nb.setHost(serverState.getConf().getHostAddress());
+						nb.setPort(serverState.getConf().getCommandPort());
+						nb.setNodeId(serverState.getConf().getNodeId());
+						
+						append.setNode(nb);
+						
+						WorkMessage.Builder wb = WorkMessage.newBuilder();
+						wb.setAppend(append);
+						wb.setHeader(hb);
+						
+						serverState.wmforward.addLast(wb.build());
+					} else {
+						FileChunkObject nod = new FileChunkObject();
+						nod.setNode_id(serverState.getConf().getNodeId());
+						nod.setHostAddress(serverState.getConf().getHostAddress());
+						nod.setPort_id(serverState.getConf().getCommandPort());
+						nod.setChunk_id(req.getRwb().getChunk().getChunkId());
+						nod.setFileName(req.getRwb().getFilename());
+
+						serverState.incoming.addLast(nod);
+					}
 					System.out.println("File writeing " + chunkName);
-				}catch(Exception e){
+				} catch (Exception e) {
 					System.out.println("Error exception" + e);
-				}finally{
+				} finally {
 					System.out.println("File write ends");
 					fout.close();
 				}
@@ -247,20 +274,20 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			return;
 		}
 
-		//PrintUtil.printCommand(msg);
+		// PrintUtil.printCommand(msg);
 
 		try {
 			if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
-				
+
 				Header.Builder hd = Header.newBuilder();
 				hd.setDestination(msg.getHeader().getNodeId());
 				hd.setNodeId(serverState.getConf().getNodeId());
 				hd.setTime(System.currentTimeMillis());
-				
+
 				CommandMessage.Builder rb = CommandMessage.newBuilder();
 				rb.setHeader(hd);
-				
+
 				rb.setPing(true);
 				channel.writeAndFlush(rb.build());
 			} else if (msg.hasMessage()) {
@@ -289,16 +316,16 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			} else if (msg.hasResp()) {
 				Response res = msg.getResp();
 				switch (res.getResponseType()) {
-					case WRITEFILE:
-						if (res.hasAck()) {
-							if (res.getAck() == ResponseStatus.Fail) {
-								// TODO send chunk data that is not received by
-								// client for given chunk ids in response
-							}
+				case WRITEFILE:
+					if (res.hasAck()) {
+						if (res.getAck() == ResponseStatus.Fail) {
+							// TODO send chunk data that is not received by
+							// client for given chunk ids in response
 						}
-						break;
-					default:
-						break;
+					}
+					break;
+				default:
+					break;
 				}
 			} else {
 				throw new Exception("Invalid message type");
@@ -308,23 +335,23 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 		} catch (Exception e) {
 			System.out.println("Caught an exception:");
 			System.out.println(e.toString());
-			
+
 			Failure.Builder eb = Failure.newBuilder();
 			eb.setId(this.serverState.getConf().getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());
 			eb.setMessage(e.getMessage());
-			
+
 			Header.Builder hd = Header.newBuilder();
 			hd.setDestination(msg.getHeader().getNodeId());
 			hd.setNodeId(serverState.getConf().getNodeId());
 			hd.setTime(System.currentTimeMillis());
-			
+
 			CommandMessage.Builder rb = CommandMessage.newBuilder(msg);
 			rb.setHeader(hd);
 			rb.setErr(eb);
-			
+
 			channel.writeAndFlush(rb.build());
-		}finally{
+		} finally {
 			System.out.flush();
 			channel.close();
 		}

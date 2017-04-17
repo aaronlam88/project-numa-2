@@ -74,6 +74,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
 		System.out.println("Channel Read");
+		System.out.println(msg.toString());
 		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId()){
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
@@ -131,7 +132,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			Header.Builder hd = Header.newBuilder();
 			hd.setDestination(msg.getHeader().getNodeId());
 			hd.setNodeId(serverState.getConf().getNodeId());
-
+			hd.setTime(System.currentTimeMillis());
+			
 			Chunk.Builder ch = Chunk.newBuilder();
 			ch.setChunkId((int) req.getRrb().getChunkId());
 
@@ -151,6 +153,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			if (req.getRrb().hasChunkId()) {
 				// send the chunk data in response
 				// send failure if chunk not found
+				System.out.println("Collecting chunk and sending it");
 				try {
 					String chunkName = new String(req.getRrb().getFilename() + "." + req.getRrb().getChunkId());
 					file = new File(Paths.get(serverState.getDbPath(), chunkName).toString());
@@ -161,7 +164,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					rrb.setChunk(ch);
 
 				} catch (Exception e) {
-					System.out.println("Error exception" + e);
+					System.out.println("Error exception" + e.toString());
 					rsp.setAck(ResponseStatus.Fail);
 				} finally {
 					fin.close();
@@ -174,7 +177,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				// send failure file not found
 
 				// read locations form hashtable and send to client
-				LocationList locationList= ServerState.hashTable.get(req.getRrb().getFilename());
+				System.out.println("Collecting file info");
+				LocationList locationList = ServerState.hashTable.get(req.getRrb().getFilename());
 
 				if (locationList != null) {
 					
@@ -182,6 +186,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						rrb.setChunkLocation(chunkLocation.getChunkid(), chunkLocation);
 					}
 				} else {
+					System.out.println("No file found");
 					rsp.setAck(ResponseStatus.Fail);
 				}
 			}
@@ -242,13 +247,20 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			return;
 		}
 
-		PrintUtil.printCommand(msg);
+		//PrintUtil.printCommand(msg);
 
 		try {
 			if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
-				boolean p = msg.getPing();
+				
+				Header.Builder hd = Header.newBuilder();
+				hd.setDestination(msg.getHeader().getNodeId());
+				hd.setNodeId(serverState.getConf().getNodeId());
+				hd.setTime(System.currentTimeMillis());
+				
 				CommandMessage.Builder rb = CommandMessage.newBuilder();
+				rb.setHeader(hd);
+				
 				rb.setPing(true);
 				channel.writeAndFlush(rb.build());
 			} else if (msg.hasMessage()) {
@@ -294,16 +306,27 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			}
 
 		} catch (Exception e) {
+			System.out.println("Caught an exception:");
+			System.out.println(e.toString());
+			
 			Failure.Builder eb = Failure.newBuilder();
 			eb.setId(this.serverState.getConf().getNodeId());
 			eb.setRefId(msg.getHeader().getNodeId());
 			eb.setMessage(e.getMessage());
+			
+			Header.Builder hd = Header.newBuilder();
+			hd.setDestination(msg.getHeader().getNodeId());
+			hd.setNodeId(serverState.getConf().getNodeId());
+			hd.setTime(System.currentTimeMillis());
+			
 			CommandMessage.Builder rb = CommandMessage.newBuilder(msg);
+			rb.setHeader(hd);
 			rb.setErr(eb);
+			
 			channel.writeAndFlush(rb.build());
+		}finally{
+			System.out.flush();
+			channel.close();
 		}
-
-		System.out.flush();
-		channel.close();
 	}
 }

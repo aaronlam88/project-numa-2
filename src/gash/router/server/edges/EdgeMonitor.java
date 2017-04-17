@@ -28,7 +28,7 @@ import pipe.common.Common.RequestAppendItem;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
-
+import routing.Pipe.CommandMessage;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -102,13 +102,17 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	@Override
 	public void run() {
-		Process_Forward pFoward = new Process_Forward(inboundEdges, outboundEdges, state);
-		Thread thread1 = new Thread(pFoward);
+		Process_WorkForward wFoward = new Process_WorkForward(inboundEdges, outboundEdges, state);
+		Thread thread1 = new Thread(wFoward);
 		thread1.start();
 		
-		Process_InComming pIncomming = new Process_InComming(inboundEdges, outboundEdges, state);
-		Thread thread2 = new Thread(pIncomming);
+		Process_CommandForward cFoward = new Process_CommandForward(inboundEdges, outboundEdges, state);
+		Thread thread2 = new Thread(cFoward);
 		thread2.start();
+		
+		Process_InComming pIncomming = new Process_InComming(inboundEdges, outboundEdges, state);
+		Thread thread3 = new Thread(pIncomming);
+		thread3.start();
 
 		while (forever) {
 			try {
@@ -161,14 +165,14 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	}
 }
 
-class Process_Forward implements Runnable {
-	protected static Logger logger = LoggerFactory.getLogger("Process_Queue");
+class Process_WorkForward implements Runnable {
+	protected static Logger logger = LoggerFactory.getLogger("Process_WorkForward");
 
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
 	private ServerState state;
 
-	public Process_Forward(EdgeList in, EdgeList out, ServerState state) {
+	public Process_WorkForward(EdgeList in, EdgeList out, ServerState state) {
 		this.outboundEdges = out;
 		this.inboundEdges = in;
 		this.state = state;
@@ -215,8 +219,63 @@ class Process_Forward implements Runnable {
 	}
 }
 
+
+class Process_CommandForward implements Runnable {
+	protected static Logger logger = LoggerFactory.getLogger("Process_CommandForward");
+
+	private EdgeList outboundEdges;
+	private EdgeList inboundEdges;
+	private ServerState state;
+
+	public Process_CommandForward(EdgeList in, EdgeList out, ServerState state) {
+		this.outboundEdges = out;
+		this.inboundEdges = in;
+		this.state = state;
+	}
+
+	@Override
+	public void run() {
+		while (true) {
+			if (!state.cmforward.isEmpty()) {
+				process_cmforward();
+			}
+		}
+	}
+
+	public void createInboundIfNew(int ref, String host, int port) {
+		inboundEdges.createIfNew(ref, host, port);
+	}
+
+	private void process_cmforward() {
+		for (EdgeInfo ei : this.outboundEdges.map.values()) {
+			if (ei.getChannel() != null && ei.isActive()) {
+				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+				CommandMessage cm = state.cmforward.poll();
+				ei.getChannel().writeAndFlush(cm);
+			} else {
+				try {
+					EventLoopGroup group = new NioEventLoopGroup();
+					WorkInit si = new WorkInit(state, false);
+					Bootstrap b = new Bootstrap();
+					b.group(group).channel(NioSocketChannel.class).handler(si);
+					b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
+					b.option(ChannelOption.TCP_NODELAY, true);
+					b.option(ChannelOption.SO_KEEPALIVE, true);
+
+					ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
+
+					ei.setChannel(channel.channel());
+					ei.setActive(channel.channel().isActive());
+				} catch (Exception e) {
+					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+				}
+			}
+		}
+	}
+}
+
 class Process_InComming implements Runnable {
-	protected static Logger logger = LoggerFactory.getLogger("Process_Queue");
+	protected static Logger logger = LoggerFactory.getLogger("Process_InComming");
 
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;

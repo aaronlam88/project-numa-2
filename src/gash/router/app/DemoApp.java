@@ -67,8 +67,8 @@ public class DemoApp implements CommListener {
 	 */
 	public static void main(String[] args) {
 		//System.out.print(args[0]);
-		String host = args[0];//"127.0.0.1";
-		int port = Integer.parseInt(args[1]);//4568;
+		String host = "localhost";//args[0];//"127.0.0.1";
+		int port = 4168;//Integer.parseInt(args[1]);//4568;
 
 		try {
 			MessageClient mc = new MessageClient(host, port);
@@ -76,7 +76,8 @@ public class DemoApp implements CommListener {
 
 			// do stuff w/ the connection
 //			da.ping(2);
-			mc.testCmd();
+			//mc.testCmd();
+			mc.ping();
 
 			System.out.println("\n** exiting in 10 seconds. **");
 			System.out.flush();

@@ -47,8 +47,7 @@ public class MessageClient {
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(999);
 		hb.setTime(System.currentTimeMillis());
-		hb.setDestination(-1);
-
+		hb.setDestination(1);
 		CommandMessage.Builder rb = CommandMessage.newBuilder();
 		rb.setMessage("Kavish Jain");
 		rb.setHeader(hb);

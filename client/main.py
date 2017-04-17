@@ -27,7 +27,7 @@ class UserClient:
                 continue
             elif choice1 == "5":
                 print("Bye")
-                nc.stopSession()
+                nc.deleteSession()
                 forever = False
             elif choice1 == "1":
                 print("Performing write operation!!!")
@@ -66,9 +66,10 @@ class UserClient:
                 print("Performing ping operation!!!")
                 req = nc.getPingMsg()
                 nc.createSession()
+                firsttime = datetime.now().time()
                 nc.sendData(req)
                 pingrply = nc.receiveMsg(MAX_MSG_SIZE)
-                processPingMsg(pingrply)
+                nc.processPingMsg(pingrply, firsttime)
                 nc.deleteSession()
             else:
                 print("Wrong Selection")

@@ -39,7 +39,7 @@ class NumaClient:
         Delete the socket session
         '''
         self.sd.close()
-        self.sd = None
+#         self.sd = None
 
     def getReadFileMsg(self, fileName):
         cm = CommandMessage()
@@ -89,22 +89,25 @@ class NumaClient:
     def getPingMsg(self):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
-        cm.header.time = datetime.now().time()
+        cm.header.time = 1
         cm.header.destination = self.target
         cm.ping = True
+        print cm
         return cm.SerializeToString()
 
-    def processPingMsg(self, msg):
+    def processPingMsg(self, msg, timefirst):
         cm = CommandMessage()
         cm.ParseFromString(msg)
-        delta = datetime.now().time() - cm.header.time
-        print "Ping reply time: " + delta
+#         delta = datetime.now().time().time() - timefirst.time()
+        print "Ping reply time: "# + delta
+        print cm
 
     def sendData(self, data):
         print "sending data"
-        # msg_len = struct.pack('>L', len(data))
-        # self.sd.sendall(msg_len + data)
-        self.sd.sendall(data)
+        msg_len = struct.pack('>L', len(data))
+        self.sd.sendall(msg_len + data)
+#         self.sd.sendall(data)
+#         self.sd.flush()
 
     def processReadFileResp(self, msg):
         cm = CommandMessage()
@@ -142,13 +145,15 @@ class NumaClient:
 
     def receiveMsg(self, n):
         buf = ''
-        while n > 0:
-            data = self.sd.recv(n)
+        len_buf = self.sd.recv(4)
+        msg_len = struct.unpack('>L', len_buf)[0]
+        while msg_len > 0:
+            data = self.sd.recv(msg_len)
 
             if(data == 0):
                 break
 
             buf += data
-            n -= len(data)
+            msg_len -= len(data)
             # print buf
         return buf

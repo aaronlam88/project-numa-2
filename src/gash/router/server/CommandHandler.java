@@ -74,6 +74,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	 */
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
+		System.out.println("Channel Read");
 		if(msg.getHeader().getDestination() == serverState.getConf().getNodeId()){
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
@@ -185,7 +186,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					rsp.setAck(ResponseStatus.Fail);
 				}
 			}
-			channel.write(cm.build());
+			channel.writeAndFlush(cm.build());
 		} else {
 			throw new Exception("Invalid message type");
 		}
@@ -230,10 +231,10 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 		} else {
 			throw new Exception("Invalid message type");
 		}
-		
 	}
 
 	public void onEvent(CommandMessageEvent event, long sequence, boolean endOfBatch) {
+		System.out.println("OnEvent");
 		CommandMessage msg = event.msg;
 		Channel channel = event.channel;
 		if (msg == null) {
@@ -250,7 +251,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				boolean p = msg.getPing();
 				CommandMessage.Builder rb = CommandMessage.newBuilder();
 				rb.setPing(true);
-				channel.write(rb.build());
+				channel.writeAndFlush(rb.build());
 			} else if (msg.hasMessage()) {
 				logger.info(msg.getMessage());
 			} else if (msg.hasReq()) {
@@ -300,9 +301,10 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			eb.setMessage(e.getMessage());
 			CommandMessage.Builder rb = CommandMessage.newBuilder(msg);
 			rb.setErr(eb);
-			channel.write(rb.build());
+			channel.writeAndFlush(rb.build());
 		}
 
 		System.out.flush();
+		channel.close();
 	}
 }

@@ -32,7 +32,6 @@ import pipe.common.Common.Request;
 import pipe.common.Common.Response;
 import pipe.common.Common.ResponseStatus;
 import pipe.common.Common.TaskType;
-import pipe.work.Work.WorkMessage;
 import routing.Pipe.CommandMessage;
 
 import com.google.protobuf.ByteString;

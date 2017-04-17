@@ -64,7 +64,7 @@ class NumaClient:
         cm.req.requestType = WRITEFILE
         cm.req.rwb.filename = fileName
         cm.req.rwb.chunk.chunk_id = index
-        cm.req.rwb.chunk.num_of_chunks = len(chunks)
+        cm.req.rwb.num_of_chunks = len(chunks)
         cm.req.rwb.chunk.chunk_data = chunks[index]
 
         print "Write chunk request created for chunk id: " 

@@ -56,12 +56,13 @@ public class ServerState {
 			this.dataPath = dbpath;
 		} else {
 			dataPath = Paths.get(".", "data").toAbsolutePath().normalize().toString();
+			System.out.println(dataPath);
 		}
 		wmforward = new LinkedBlockingDeque<WorkMessage>();
 		incoming = new LinkedList<FileChunkObject>();
 
 		currentLeader = -1; // unknown
-		isLeader = false; // doesn't assume itself as leader
+		isLeader = true; // doesn't assume itself as leader
 		// if both currentLeader is unknown call for election
 		cmforward = new LinkedBlockingDeque<CommandMessage>();
 

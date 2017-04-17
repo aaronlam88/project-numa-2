@@ -145,14 +145,12 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			rrb.setFilename(req.getRrb().getFilename());
 
 			Response.Builder rsp = Response.newBuilder();
-			rsp.setReadResponse(rrb);
 			rsp.setFilename(req.getRrb().getFilename());
 			rsp.setAck(ResponseStatus.Success);
 			rsp.setResponseType(TaskType.READFILE);
 
 			CommandMessage.Builder cm = CommandMessage.newBuilder();
 			cm.setHeader(hd);
-			cm.setResp(rsp);
 
 			if (req.getRrb().hasChunkId()) {
 				// send the chunk data in response
@@ -194,6 +192,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					rsp.setAck(ResponseStatus.Fail);
 				}
 			}
+			rsp.setReadResponse(rrb);
+			cm.setResp(rsp);
 			channel.writeAndFlush(cm.build());
 		} else {
 			throw new Exception("Invalid message type");

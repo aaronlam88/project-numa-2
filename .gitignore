@@ -17,6 +17,7 @@
 *.tar.gz
 *.rar
 
+protobuf*/
 **/generated*/*
 **/.pydev*
 **/classes

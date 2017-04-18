@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class ServerElectionStatus{
 	protected static Logger logger = LoggerFactory.getLogger("ServerElectionStatus");
 

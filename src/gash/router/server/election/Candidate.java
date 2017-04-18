@@ -30,6 +30,7 @@ import gash.router.container.RoutingConf.RoutingEntry;
 public class Candidate implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("Candidate");
 
+	
 	private boolean isLeader=false;
 	private boolean isCandidate;
 	private int currentTerm;

@@ -13,7 +13,7 @@ project_base="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
 
-if [ -d ${project_base}/generated ]; then
+if [ -d ${project_base}/generated/data ]; then
 echo "removing contents of ${project_base}/data"
 rm -r ${project_base}/data/*
 else

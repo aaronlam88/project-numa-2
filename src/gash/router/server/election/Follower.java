@@ -13,6 +13,7 @@ import gash.router.server.election.Leader;
 public class Follower implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("follower");
 
+	
 	private boolean isFollower=false;
 	private int currentTerm;
 	private int currentNodeId;

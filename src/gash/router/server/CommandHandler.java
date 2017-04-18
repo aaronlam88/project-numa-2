@@ -180,7 +180,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 				// read locations form hashtable and send to client
 				System.out.println("Collecting file info");
-				LocationList locationList = ServerState.hashTable.get(req.getRrb().getFilename());
+				LocationList.Builder locationList = ServerState.hashTable.get(req.getRrb().getFilename());
 
 				if (locationList != null) {
 
@@ -217,7 +217,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					file.createNewFile();
 					fout = new FileOutputStream(file);
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
-					System.out.println("File writen");
+					System.out.println("File written");
+					
 					if (serverState.isLeader()) {
 						System.out.println("Yes leader");
 						// build <filename, LocationList>
@@ -232,11 +233,16 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						clb.setChunkid(chunkId);
 						clb.setNode(clb.getNodeCount(), nb.build());
 
-						LocationList.Builder lb = LocationList.newBuilder();
+						LocationList.Builder lb;						
+						if(ServerState.hashTable.containsKey(filename)){
+							lb = ServerState.hashTable.get(filename);
+						}else {
+							lb = LocationList.newBuilder();
+						}
+						
 						lb.addLocationList(clb.build());
 						
-						// put <filename, LocationlList> onto The Log
-						ServerState.hashTable.put(filename, lb.build());
+						ServerState.hashTable.put(filename, lb);
 						
 						
 						// construct a work message to send out to Followers
@@ -254,8 +260,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						WorkMessage.Builder wb = WorkMessage.newBuilder();
 						wb.setAppend(append);
 						wb.setHeader(hb);
-						// push work message to wmforward queue
 						serverState.wmforward.addLast(wb.build());
+						
 					} else {
 						System.out.println("No leader");
 						FileChunkObject nod = new FileChunkObject();

@@ -42,6 +42,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.List;
+import java.util.Map;
 
 import gash.router.server.election.Follower;
 import gash.router.server.election.Candidate;
@@ -439,22 +440,26 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				hb.setNodeId(state.getConf().getNodeId());
 				hb.setTime(System.currentTimeMillis());
 				hb.setDestination(msg.getHeader().getNodeId());
-				
 				Log.Builder logmsg = Log.newBuilder();
-				logmsg.putAllHashTable(ServerState.hashTable);
+				
+				for(Map.Entry<String, LocationList.Builder> entry : ServerState.hashTable.entrySet()){
+					logmsg.putHashTable(entry.getKey(), entry.getValue().build());
+				}
+				
 				// write log file back to sender
 				channel.writeAndFlush(logmsg);
 			} else if (msg.hasRequestAppend() && state.isLeader()) {
 				// FOLLOWER want to append, ONLY LEADER should read this message
 				RequestAppendItem request = msg.getRequestAppend();
 				// get locationList from filename
-				LocationList locationList = ServerState.hashTable.get(request.getFilename());
+				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with the chunk_id
 				for(ChunkLocation chunkLoc : locationList.getLocationListList()) {
 					if(chunkLoc.getChunkid() == request.getChunkId()) {
 						chunkLoc.getNodeList().add(request.getNode());
 					}
 				}
+				
 				ServerState.hashTable.put(request.getFilename(), locationList);
 				
 				// append success, notify all FOLLOWERS
@@ -504,7 +509,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// hashTable
 				AppendLogItem request = msg.getAppend();
 				// get locationList from filename
-				LocationList locationList = ServerState.hashTable.get(request.getFilename());
+				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with the chunk_id
 				for(ChunkLocation chunkLoc : locationList.getLocationListList()) {
 					if(chunkLoc.getChunkid() == request.getChunkId()) {

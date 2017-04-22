@@ -32,7 +32,6 @@ import pipe.common.Common.ReadResponse;
 
 import pipe.common.Common.Request;
 import pipe.common.Common.Response;
-import pipe.common.Common.ResponseStatus;
 import pipe.common.Common.TaskType;
 import pipe.work.Work.WorkMessage;
 import routing.Pipe.CommandMessage;
@@ -144,8 +143,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 			Response.Builder rsp = Response.newBuilder();
 			rsp.setFilename(req.getRrb().getFilename());
-			rsp.setAck(ResponseStatus.Success);
-			rsp.setResponseType(TaskType.READFILE);
+			rsp.setStatus(Response.Status.SUCCESS);
+			rsp.setResponseType(TaskType.RESPONSEREADFILE);
 
 			CommandMessage.Builder cm = CommandMessage.newBuilder();
 			cm.setHeader(hd);
@@ -165,7 +164,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 				} catch (Exception e) {
 					System.out.println("Error exception" + e.toString());
-					rsp.setAck(ResponseStatus.Fail);
+					rsp.setStatus(Response.Status.ERROR);
 				} finally {
 					fin.close();
 					file = null;
@@ -187,7 +186,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					}
 				} else {
 					System.out.println("No file found");
-					rsp.setAck(ResponseStatus.Fail);
+					rsp.setStatus(Response.Status.FILENOTFOUND);
 				}
 			}
 			rsp.setReadResponse(rrb);
@@ -315,20 +314,14 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			} else if (msg.hasReq()) {
 				Request req = msg.getReq();
 				switch (req.getRequestType()) {
-				case READFILE:
+				case REQUESTREADFILE:
 					processReadRequest(msg, channel);
 
 					break;
 
-				case WRITEFILE:
+				case REQUESTWRITEFILE:
 					processWriteRequest(msg, channel);
 					break;
-				// case DELETEFILE:
-				//
-				// break;
-				// case UPDATEFILE:
-				//
-				// break;
 				default:
 					break;
 				}
@@ -336,9 +329,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			} else if (msg.hasResp()) {
 				Response res = msg.getResp();
 				switch (res.getResponseType()) {
-				case WRITEFILE:
-					if (res.hasAck()) {
-						if (res.getAck() == ResponseStatus.Fail) {
+				case REQUESTWRITEFILE:
+					if (res.hasStatus()) {
+						if (res.getStatus() != Response.Status.SUCCESS) {
 							// TODO send chunk data that is not received by
 							// client for given chunk ids in response
 						}

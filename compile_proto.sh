@@ -27,7 +27,7 @@ fi
 
 if [ -d ${project_base}/generated ]; then
   echo "removing contents of ${project_base}/generated"
-  rm -r ${project_base}/generated/*
+rm -r ${project_base}/generated/*
 else
   echo "creating directory ${project_base}/generated"
   mkdir "${project_base}/generated"

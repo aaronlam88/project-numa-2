@@ -34,7 +34,6 @@ import pipe.work.Work.Heartbeat;
 import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
-import pipe.voteRequest.VoteRequest.VoteReq;
 import pipe.voteRequest.VoteRequest.Results;
 import gash.router.server.election.Leader;
 
@@ -47,7 +46,6 @@ import java.util.Map;
 import gash.router.server.election.Follower;
 import gash.router.server.election.Candidate;
 
-import pipe.appendEntries.AppendEntries.AppendEntry;
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
 
 /**

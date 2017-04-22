@@ -43,7 +43,6 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.List;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -53,6 +52,7 @@ import java.util.List;
  * @author gash
  * 
  */
+
 public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> {
 	protected static Logger logger = LoggerFactory.getLogger("cmd");
 	protected ServerState serverState;
@@ -78,7 +78,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
 		System.out.println("Channel Read");
-		//System.out.println(msg.toString());
+		// System.out.println(msg.toString());
 		if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
@@ -90,7 +90,6 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		} else {
 			serverState.cmforward.addLast(msg);
 		}
-
 	}
 
 	@Override
@@ -98,7 +97,6 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		logger.error("Unexpected exception from downstream.", cause);
 		ctx.close();
 	}
-
 }
 
 class CommandMessageEvent {
@@ -218,7 +216,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					fout = new FileOutputStream(file);
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
 					System.out.println("File written");
-					
+
 					if (serverState.isLeader()) {
 						System.out.println("Yes leader");
 						// build <filename, LocationList>
@@ -233,18 +231,17 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						clb.setChunkid(chunkId);
 						clb.setNode(clb.getNodeCount(), nb.build());
 
-						LocationList.Builder lb;						
-						if(ServerState.hashTable.containsKey(filename)){
+						LocationList.Builder lb;
+						if (ServerState.hashTable.containsKey(filename)) {
 							lb = ServerState.hashTable.get(filename);
-						}else {
+						} else {
 							lb = LocationList.newBuilder();
 						}
-						
+
 						lb.addLocationList(clb.build());
-						
+
 						ServerState.hashTable.put(filename, lb);
-						
-						
+
 						// construct a work message to send out to Followers
 						Header.Builder hb = Header.newBuilder();
 						hb.setDestination(-1);
@@ -261,7 +258,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						wb.setAppend(append);
 						wb.setHeader(hb);
 						serverState.wmforward.addLast(wb.build());
-						
+
 					} else {
 						System.out.println("No leader");
 						FileChunkObject nod = new FileChunkObject();
@@ -298,8 +295,6 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			logger.error("ERROR: Unexpected content - " + msg);
 			return;
 		}
-
-		// PrintUtil.printCommand(msg);
 
 		try {
 			if (msg.hasPing()) {
@@ -378,7 +373,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			channel.writeAndFlush(rb.build());
 		} finally {
 			System.out.flush();
-			//channel.close();
+			// channel.close();
 		}
 	}
 }

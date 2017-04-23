@@ -30,7 +30,6 @@ import gash.router.container.RoutingConf.RoutingEntry;
 public class Candidate implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("Candidate");
 
-	
 	private boolean isLeader=false;
 	private boolean isCandidate;
 	private int currentTerm;
@@ -173,7 +172,7 @@ public class Candidate implements Runnable{
 		System.out.println("conencted message");
 		WorkMessage pr = wm.build();
 
-		System.out.println(pr.toString());
+		//System.out.println(pr.toString());
 		return pr ;
 	}
 	

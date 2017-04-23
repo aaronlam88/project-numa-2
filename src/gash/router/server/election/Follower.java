@@ -13,7 +13,6 @@ import gash.router.server.election.Leader;
 public class Follower implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("follower");
 
-	
 	private boolean isFollower=false;
 	private int currentTerm;
 	private int currentNodeId;
@@ -113,11 +112,12 @@ public class Follower implements Runnable{
 				 beatTimer.schedule(new TimerTask(){
 					public void run(){
 						try{
-							if(state.getStatus().isHeartbeatTimeout()){
+							if(state.getStatus().isHeartbeatTimeout() && state.getStatus().isIsVotedFor()){
 								if(state.getStatus().getNextIndex()!=state.getStatus().getPrevIndex()){
 									state.getStatus().setFollower(false);
 									state.getStatus().setLeader(false);
 									state.getStatus().setCandidate(true);
+									
 
 									Candidate cobj = new Candidate(state);
 									cobj.startElection();
@@ -148,7 +148,4 @@ public class Follower implements Runnable{
 	}
 
 
-	//TODO if appendEntry is received in the state of the follower then maks the necessary setting and keep it in a follwoer stage
-
-	//TODO dont process the write messagge if the sever is in the follower state
 }

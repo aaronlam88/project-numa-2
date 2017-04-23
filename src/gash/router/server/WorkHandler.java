@@ -35,6 +35,7 @@ import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
 import pipe.voteRequest.VoteRequest.Results;
+import pipe.voteRequest.VoteRequest.VoteReq;
 import gash.router.server.election.Leader;
 
 import java.io.BufferedWriter;
@@ -47,6 +48,7 @@ import gash.router.server.election.Follower;
 import gash.router.server.election.Candidate;
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
+import pipe.appendEntries.AppendEntries.AppendEntry;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -294,7 +296,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						try{
 
-							File file = new File(state.getDbPath()+"/appendEntryLog.csv");
+							File file = new File(state.getDbPath()+"/appendEntryLog.txt");
 
 							if (!file.exists()) {
 								file.createNewFile();
@@ -308,6 +310,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 								bw.write(",");
 							}
 							bw.write("\n");
+							bw.flush();
 
 
 							System.out.println("Entry appended in Workhandler for hearbeat success");

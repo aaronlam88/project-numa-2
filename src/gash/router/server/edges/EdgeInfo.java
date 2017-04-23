@@ -25,7 +25,7 @@ public class EdgeInfo {
 	private boolean active = true;
 	private Channel channel;
 	public int retry;
-	
+
 	EdgeInfo(int ref, String host, int port) {
 		this.ref = ref;
 		this.host = host;

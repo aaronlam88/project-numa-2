@@ -44,7 +44,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
-	private long dt = 2000;
+	private long dt = 20000;
 	private ServerState state;
 	private boolean forever = true;
 
@@ -74,7 +74,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	private WorkMessage createHB(EdgeInfo ei) {
 		WorkState.Builder sb = WorkState.newBuilder();
-		sb.setEnqueued(-1);
+		sb.setEnqueued(state.getPerformanceStat());
 		sb.setProcessed(-1);
 
 		Heartbeat.Builder bb = Heartbeat.newBuilder();
@@ -82,13 +82,14 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(state.getConf().getNodeId());
-		hb.setDestination(-1);
 		hb.setTime(System.currentTimeMillis());
 
 		if(state.isLeader()) {
 			hb.setMaxHops(-1);
+			hb.setDestination(state.getConf().getNodeId());
 		} else {
 			hb.setMaxHops(1);
+			hb.setDestination(ei.getRef());
 		}
 
 		WorkMessage.Builder wb = WorkMessage.newBuilder();

@@ -21,12 +21,13 @@ class NumaClient:
     '''
     Client to talk to numa server using sockets. Supports basic file CRUD operations.
     '''
-
+    
     def __init__(self, host, port, targetNode):
         self.sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.host = host
         self.port = port
         self.target = targetNode
+        self.session_request = 0
 
     def createSession(self):
         '''
@@ -47,9 +48,10 @@ class NumaClient:
     def getReadFileMsg(self, fileName):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
+        cm.header.message_id = self.session_request
         cm.header.time = 1
         cm.header.destination = self.target
-        cm.req.requestType = READFILE
+        cm.req.requestType = REQUESTREADFILE
         cm.req.rrb.filename = fileName
 
         print "Read file request created: "
@@ -59,9 +61,10 @@ class NumaClient:
     def getWriteChunkMsg(self, fileName, chunks, index):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
+        cm.header.message_id = self.session_request
         cm.header.time = 1
         cm.header.destination = self.target
-        cm.req.requestType = WRITEFILE
+        cm.req.requestType = REQUESTWRITEFILE
         cm.req.rwb.filename = fileName
         cm.req.rwb.chunk.chunk_id = index
         cm.req.rwb.num_of_chunks = len(chunks)
@@ -74,9 +77,10 @@ class NumaClient:
     def getReadChunkMsg(self, fileName, chunkID):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
+        cm.header.message_id = self.session_request
         cm.header.time = 1
         cm.header.destination = self.target
-        cm.req.requestType = READFILE
+        cm.req.requestType = REQUESTREADFILE
         cm.req.rrb.filename = fileName
         cm.req.rrb.chunk_id = chunkID
 
@@ -98,6 +102,7 @@ class NumaClient:
     def getPingMsg(self):
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
+        cm.header.message_id = self.session_request
         cm.header.time = 1
         cm.header.destination = self.target
         cm.ping = True
@@ -114,6 +119,7 @@ class NumaClient:
 
     def sendData(self, data):
         print "sending data"
+        self.session_request = self.session_request + 1
         msg_len = struct.pack('>L', len(data))
         self.sd.sendall(msg_len + data)
 #         self.sd.sendall(data)
@@ -125,7 +131,7 @@ class NumaClient:
         cm.ParseFromString(msg)
         print cm
         locs = {}
-        if cm.resp.ack == Success:
+        if cm.resp.status == REDIRECTION:
             filename = cm.resp.filename
             chunkd = {}
             for chunk in cm.resp.readResponse.chunk_location:
@@ -144,7 +150,7 @@ class NumaClient:
         print "Processing read chunk response"
         cm = CommandMessage()
         cm.ParseFromString(msg)
-        if cm.resp.ack == Success:
+        if cm.resp.status == Success:
             filename = cm.resp.filename
             data = cm.resp.readResponse.chunk.chunk_data
             # filename += cm.resp.readResponse.chunk.chunk_id
@@ -152,9 +158,9 @@ class NumaClient:
             path = os.path.join(fileDir, filename)
             fout = open(path, "a")
             fout.write(data)
-            print "Chunk id: " + cm.resp.readResponse.chunk.chunk_id + " written to file " + filename
+            print "Chunk id: " + str(cm.resp.readResponse.chunk.chunk_id) + " written to file " + filename
         else:
-            print "Fail response received."
+            print "Fail response received: " + str(cm.resp.status)
 
     def receiveMsg(self):
         buf = ''

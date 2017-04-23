@@ -19,13 +19,9 @@ import org.slf4j.LoggerFactory;
 
 public class ServerState {
 	protected static Logger logger = LoggerFactory.getLogger("ServerState");
-
-	// TODO no need for currentLeader and isLeader as those are included in the
-	// ServerElectionStatus. also currentTerm and Voted
-	// change their setter getters
-
-	// The Log file for the system. Record filename and it location.
-
+	
+	// Performance monitor for task stealing 
+	private PerformanceMonitor perfmon;
 	private RoutingConf conf;
 	private EdgeMonitor emon;
 	private TaskList tasks;
@@ -33,7 +29,7 @@ public class ServerState {
 
 	private int currentLeader; // current leader node id
 	private boolean isLeader;
-	public static Hashtable<String,  LocationList.Builder> hashTable = new Hashtable<>();
+	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<>();
 	private String dataPath;
 	private int currentTerm;
 	private boolean voted;
@@ -67,6 +63,7 @@ public class ServerState {
 		cmforward = new LinkedBlockingDeque<CommandMessage>();
 
 		this.status = new ServerElectionStatus();
+		perfmon = new PerformanceMonitor();
 
 		logger.info("ServerElectionStatus values initialized");
 	}
@@ -77,6 +74,10 @@ public class ServerState {
 
 	public RoutingConf getConf() {
 		return conf;
+	}
+
+	public int getPerformanceStat() {
+		return (int) perfmon.getCpuUsage();
 	}
 
 	public void setConf(RoutingConf conf) {

@@ -74,7 +74,7 @@ public class Leader implements Runnable{
 
 	@Override
 	public void run() {
-		while (this.isLeader && this.leaderId==state.getConf().getNodeId()) {
+		while (state.getStatus().getLeader()  && state.getStatus().getLeaderId()==state.getConf().getNodeId() ) {
 			try {
 				System.out.println("append etnries in leader run method");
 				sendAppendEntries();
@@ -132,6 +132,7 @@ public class Leader implements Runnable{
 		//update own entry first and then send appendEntry message to all nodes in the network
 
 		// create an entry first
+		System.out.println("building appendentry message");
 
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(state.getConf().getNodeId());
@@ -151,10 +152,12 @@ public class Leader implements Runnable{
 		entry[3]="AppendEntry every heartbeat timeout";
 		//entries should contain term,leaderid,index,message
 
-		ab.setEntries(0,Integer.toString(currentTerm));
-		ab.setEntries(1,Integer.toString(leaderId));
-		ab.setEntries(2,Integer.toString(state.getStatus().getLastAplliedIndex()+1));
-		ab.setEntries(3,"AppendEntry every heartbeat timeout");
+		System.out.println("entry field built");
+
+		ab.addEntries(Integer.toString(currentTerm));
+		ab.addEntries(Integer.toString(leaderId));
+		ab.addEntries(Integer.toString(state.getStatus().getLastAplliedIndex()+1));
+		ab.addEntries("AppendEntry every heartbeat timeout");
 
 		ab.setLeaderCommit(state.getStatus().getCommitIndex());
 
@@ -163,11 +166,18 @@ public class Leader implements Runnable{
 		wm.setAeMsg(ab);
 		wm.setSecret(121316550);
 
+		WorkMessage pr = wm.build();
+
+		System.out.println(pr.toString());
+	//	state.getStatus().setElectionTimeout(false);
+	//	state.getStatus().setHeartbeatTimeout(false);
 		// write entry object to leader node itself first
 
 		try{
 
-			PrintWriter pw=new PrintWriter(new File(state.getDbPath()+"/appendEntryLog.csv"));
+			System.out.println("wrinting to leaders file");
+
+			PrintWriter pw=new PrintWriter(new File(state.getDbPath()+"/appendEntryLog.txt"));
 			StringBuilder sb= new StringBuilder();
 
 			for(int i=0;i<entry.length;i++){
@@ -186,7 +196,7 @@ public class Leader implements Runnable{
 			logger.error("error in writing AppendEntry to leader node", e);
 		}
 
-		return wm.build();
+		return pr;
 	}
 
 	//TODO update lastappleid index on success

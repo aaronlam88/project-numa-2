@@ -82,7 +82,7 @@ public class Candidate implements Runnable{
 		this.isLeader=state.getStatus().getLeader();
 		this.leaderId=state.getStatus().getLeaderId();
 
-		while (forever || !this.isLeader) {
+		while (!state.getStatus().getLeader() && state.getStatus().getCandidate()) {
 			try {
 				startElection();
 				Thread.sleep(2000);

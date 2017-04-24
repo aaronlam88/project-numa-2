@@ -30,6 +30,7 @@ public class ServerElectionStatus{
 	private boolean heartbeatTimeout=false;
 	private int totalAppendEntrySuccessForThisTerm=0;
 	private int totalNodesDiscovered=0;
+	private ArrayList<Integer> nodesThatRepliedBeats = new ArrayList<Integer>();
 
 
 	public ServerElectionStatus(){
@@ -50,7 +51,13 @@ public class ServerElectionStatus{
 		this.totalAppendEntrySuccessForThisTerm=0;
 	}
 	
+	public ArrayList<Integer> getNodesThatRepliedBeats(){
+		return nodesThatRepliedBeats;
+	}
 
+	public void setNodesThatRepliedBeatsInList(int nodeid){
+		this.nodesThatRepliedBeats.add(nodeid);
+	}
 
 	public int getTotalNodesDiscovered() {
 		return totalNodesDiscovered;

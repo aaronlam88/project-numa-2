@@ -96,8 +96,9 @@ public class MessageServer {
 	 * static because we need to get a handle to the factory from the shutdown
 	 * resource
 	 */
-	public static void shutdown() {
+	public void shutdown() {
 		logger.info("Server shutdown");
+		myState.keepWorking = false;
 		System.exit(0);
 	}
 

@@ -48,7 +48,7 @@ public class CommandInit extends ChannelInitializer<SocketChannel> {
 		// Executor that will be used to construct new threads for consumers
 		Executor executor = Executors.newCachedThreadPool();
 		CommandMessageEventFactory factory = new CommandMessageEventFactory();
-		int bufferSize = 1024; // Specify the size of the ring buffer, must be
+		int bufferSize = 256; // Specify the size of the ring buffer, must be
 								// power of 2.
 		Disruptor<CommandMessageEvent> disruptor = new Disruptor<CommandMessageEvent>(factory, bufferSize, executor);
 		disruptor.handleEventsWith(new CommandMessageEventHandler(state));

@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 public class ServerState {
 	protected static Logger logger = LoggerFactory.getLogger("ServerState");
-	
+	public boolean keepWorking = true;
 	// Performance monitor for task stealing 
 	private PerformanceMonitor perfmon;
 	private RoutingConf conf;

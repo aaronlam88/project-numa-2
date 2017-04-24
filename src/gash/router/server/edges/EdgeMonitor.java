@@ -31,13 +31,11 @@ import pipe.work.Work.WorkState;
 import routing.Pipe.CommandMessage;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import gash.router.server.WorkInit;
 
 public class EdgeMonitor implements EdgeListener, Runnable {
 	protected static Logger logger = LoggerFactory.getLogger("edge monitor");
@@ -107,6 +105,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	public void shutdown() {
 		forever = false;
+		state.keepWorking = false;
 	}
 
 	@Override
@@ -124,7 +123,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		Thread thread3 = new Thread(pIncomming);
 		thread3.start();
 
-		while (forever) {
+		while (state.keepWorking) {
 			try {
 				sendHeartBeat();
 				Thread.sleep(dt);
@@ -203,7 +202,7 @@ class Process_WorkForward implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (state.keepWorking) {
 			if (!state.wmforward.isEmpty()) {
 				process_wmforward();
 			}
@@ -258,7 +257,7 @@ class Process_CommandForward implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (state.keepWorking) {
 			if (!state.cmforward.isEmpty()) {
 				process_cmforward();
 			}
@@ -312,7 +311,7 @@ class Process_InComming implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (state.keepWorking) {
 			if (!state.incoming.isEmpty()) {
 				process_incoming();
 			}

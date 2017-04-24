@@ -35,7 +35,6 @@ import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
 import pipe.voteRequest.VoteRequest.Results;
-import pipe.voteRequest.VoteRequest.VoteReq;
 import gash.router.server.election.Leader;
 
 import java.io.BufferedWriter;
@@ -50,9 +49,6 @@ import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.election.Candidate;
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
-import pipe.appendEntries.AppendEntries.AppendEntry;
-
-import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCountUtil;
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -84,7 +80,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			System.out.println("ERROR: Unexpected content - " + msg);
 			return;
 		}
-
+		if(msg.getHeader().getDestination() < state.minRange && msg.getHeader().getDestination() > state.maxRange)
+			return;
 		// if (debug)
 		PrintUtil.printWork(msg);
 

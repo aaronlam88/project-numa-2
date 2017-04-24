@@ -30,6 +30,9 @@ public class ServerState {
 	private int currentLeader; // current leader node id
 	private boolean isLeader;
 	
+	public int minRange = 30;
+	public int maxRange = 39;
+
 	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<>();
 	
 	private String dataPath;

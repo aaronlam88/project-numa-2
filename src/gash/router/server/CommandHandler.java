@@ -378,6 +378,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			logger.error("ERROR: Unexpected content - " + msg);
 			return;
 		}
+		
+		if(msg.getHeader().getDestination() < serverState.minRange && msg.getHeader().getDestination() > serverState.maxRange)
+			return;
 
 		try {
 			if (msg.hasPing()) {

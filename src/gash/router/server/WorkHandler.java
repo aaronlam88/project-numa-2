@@ -384,15 +384,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						Header.Builder hb = Header.newBuilder();
 						hb.setNodeId(state.getConf().getNodeId());
-						hb.setDestination(msg.getAeMsg().getLeaderId()); // send
-																			// message
-																			// back
-																			// to
-																			// leader
-																			// who
-																			// sent
-																			// appendentry
-																			// message
+						// send message back to leader  who sent append entry message
+						hb.setDestination(msg.getAeMsg().getLeaderId()); 
 						hb.setTime(System.currentTimeMillis());
 
 						AppendEntriesResult.Builder rb = AppendEntriesResult.newBuilder();

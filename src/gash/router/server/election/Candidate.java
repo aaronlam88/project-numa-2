@@ -30,7 +30,6 @@ import gash.router.container.RoutingConf.RoutingEntry;
 public class Candidate implements Runnable{
 	protected static Logger logger = LoggerFactory.getLogger("Candidate");
 
-	
 	private boolean isLeader=false;
 	private boolean isCandidate;
 	private int currentTerm;
@@ -83,7 +82,7 @@ public class Candidate implements Runnable{
 		this.isLeader=state.getStatus().getLeader();
 		this.leaderId=state.getStatus().getLeaderId();
 
-		while (forever || !this.isLeader) {
+		while (!state.getStatus().getLeader() && state.getStatus().getCandidate()) {
 			try {
 				startElection();
 				Thread.sleep(2000);
@@ -173,7 +172,7 @@ public class Candidate implements Runnable{
 		System.out.println("conencted message");
 		WorkMessage pr = wm.build();
 
-		System.out.println(pr.toString());
+		//System.out.println(pr.toString());
 		return pr ;
 	}
 	

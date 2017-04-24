@@ -35,6 +35,7 @@ import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
 import pipe.voteRequest.VoteRequest.Results;
+import pipe.voteRequest.VoteRequest.VoteReq;
 import gash.router.server.election.Leader;
 
 import java.io.BufferedWriter;
@@ -47,6 +48,10 @@ import gash.router.server.election.Follower;
 import gash.router.server.election.Candidate;
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
+import pipe.appendEntries.AppendEntries.AppendEntry;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -151,7 +156,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							wm.setSecret(121316549);
 
 							// start timeout after voting
-							if(!state.getStatus().isIsVotedFor()){
+							if(!state.getStatus().isIsVotedFor() && state.getStatus().getCandidate() && !state.getStatus().getLeader()){
 
 								System.out.println("sending the message back to requesting node");
 								state.getStatus().setFollower(true);
@@ -228,6 +233,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						state.getStatus().setLeaderId(thisNode);
 						state.getStatus().setCurrentTerm(votedForTerm);
 						state.getStatus().setLastTermInLog(votedForTerm-1);
+						state.getStatus().setElectionTimeout(false);
+						state.getStatus().setHeartbeatTimeout(false);
 
 						Leader lead = new Leader(state);
 						Thread t = new Thread(lead);
@@ -293,8 +300,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						FileWriter fw = null;
 
 						try{
-
-							File file = new File(state.getDbPath()+"/appendEntryLog.csv");
+							System.out.println("creating file");
+							File file = new File(state.getDbPath()+"/appendEntryLog.txt");
 
 							if (!file.exists()) {
 								file.createNewFile();
@@ -308,6 +315,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 								bw.write(",");
 							}
 							bw.write("\n");
+							bw.flush();
 
 
 							System.out.println("Entry appended in Workhandler for hearbeat success");
@@ -372,6 +380,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			else if(msg.hasAeResult()){
 				//TODO if more than n/2 +1 success then
 
+				System.out.println("append entry recieved");
+				System.out.println(msg.toString());
+
 				System.out.println("AppendEntryResutl recived in workhandler");
 				System.out.println("result of Append Etnry recieved from node: "+msg.getHeader().getNodeId());
 				System.out.println("term appended entry for:" + msg.getAeResult().getTerm());
@@ -418,9 +429,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						state.getStatus().setPrevIndex(1);
 
 
-						Candidate cn= new Candidate(state);
+						/*Candidate cn= new Candidate(state);
 						Thread t= new Thread(cn);
-						t.run();
+						t.run();*/
 
 
 				}
@@ -553,20 +564,24 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
 
-		System.out.println("i hit channelread ");
+		//System.out.println("i hit channelread ");
 
 		if(msg.getHeader().getDestination() == state.getConf().getNodeId() ){
 			System.out.println("only for me message; i will handle it");
 			handleMessage(msg, ctx.channel());
+		}
+		else if(msg.getHeader().getDestination()!=state.getConf().getNodeId() && msg.getHeader().getDestination() != -1 ){
+			state.wmforward.addLast(msg);
 		}
 		else if (msg.getHeader().getDestination() == -1 &&  msg.getHeader().getNodeId()!= state.getConf().getNodeId() ) {
 			state.wmforward.addLast(msg);	
 			System.out.println("message has been passed and now we will have a look at it");				// this is broadcast message, should have a look
 			handleMessage(msg, ctx.channel());
 		}
-		else if(msg.getHeader().getNodeId()==state.getConf().getNodeId()){
+		else if(msg.getHeader().getDestination() == -1 && msg.getHeader().getNodeId()==state.getConf().getNodeId()){
 			System.out.println("i sent this message and i am not processign");
-			 // msg.release();
+			 //((WorkMessage) msg).release(); 
+			ReferenceCountUtil.release(msg);
 		}
 		else {
 			// this is a private message for someone else, just forward it

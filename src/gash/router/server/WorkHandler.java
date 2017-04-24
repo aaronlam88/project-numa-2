@@ -598,10 +598,12 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 	private void startStealing(WorkMessage msg) {
 		int node_id = msg.getHeader().getNodeId();
-		if (state.getConf().getRouting() != null) {
+		if (state.getConf().getRouting() != null && state.getPerformanceStat() < 50) {
 			for (RoutingEntry e : state.getConf().getRouting()) {
 				if(e.getId() == node_id){
-					
+					TaskStealer ts = new TaskStealer(e, 3, state);
+					Thread t = new Thread(ts);
+					t.start();
 				}
 			}
 		}

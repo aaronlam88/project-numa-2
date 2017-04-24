@@ -65,6 +65,62 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	}
 
 	/**
+	 * check to see if we should discard WorkMessage msg
+	 * 
+	 * @param msg
+	 * @return true: we don't need to care about this msg, discard it (return)
+	 *         false: we have to read this msg or forward it.
+	 */
+	protected boolean shouldDiscard(CommandMessage msg) {
+		Header header = msg.getHeader();
+		int maxHop = header.getMaxHops();
+		int src = header.getNodeId();
+		long time = header.getTime();
+
+		// if max hop == 0, discard
+		if (maxHop == 0) {
+			// discard this message
+			return true;
+		}
+		// if message is older than 1 minutes (60000ms), discard
+		if ((System.currentTimeMillis() - time) > 60000) {
+			// discard this message
+			return true;
+		}
+
+		// if I send this msg to myself, discard
+		// avoid echo msg
+		if (src == serverState.getConf().getNodeId()) {
+			return true;
+		}
+
+		// the above cases should cover all the problems
+		return false;
+	}
+
+	/**
+	 * rebuild msg so it can be forward to other node, namely --maxHop
+	 * 
+	 * @param msg
+	 * @return WorkMessage with new maxHop = old maxHop - 1
+	 */
+	protected CommandMessage rebuildMessage(CommandMessage msg) {
+		Header header = msg.getHeader();
+		int maxHop = header.getMaxHops();
+		--maxHop;
+		// build new header from old header, only update maxHop
+		Header.Builder hb = Header.newBuilder();
+		hb.mergeFrom(header);
+		hb.setMaxHops(maxHop);
+
+		// build new msg from old msg, only update Header
+		CommandMessage.Builder cb = CommandMessage.newBuilder();
+		cb.mergeFrom(msg);
+		cb.setHeader(hb.build());
+		return cb.build();
+	}
+
+	/**
 	 * a message was received from the server. Here we dispatch the message to
 	 * the client's thread pool to minimize the time it takes to process other
 	 * messages.
@@ -77,6 +133,10 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
 		System.out.println("Channel Read");
+		if (shouldDiscard(msg)) {
+			return;
+		}
+		msg = rebuildMessage(msg);
 		// System.out.println(msg.toString());
 		if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
 			long sequence = ringBuffer.next(); // Grab the next sequence

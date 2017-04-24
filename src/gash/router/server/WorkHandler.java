@@ -389,15 +389,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						Header.Builder hb = Header.newBuilder();
 						hb.setNodeId(state.getConf().getNodeId());
-						hb.setDestination(msg.getAeMsg().getLeaderId()); // send
-																			// message
-																			// back
-																			// to
-																			// leader
-																			// who
-																			// sent
-																			// appendentry
-																			// message
+						
+						// send message back to leader  who sent append entry message
+						hb.setDestination(msg.getAeMsg().getLeaderId()); 
+						
 						hb.setTime(System.currentTimeMillis());
 
 						AppendEntriesResult.Builder rb = AppendEntriesResult.newBuilder();
@@ -447,9 +442,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				int totalSuccess = state.getStatus().getTotalAppendEntrySuccessForThisTerm();
 
 				state.getStatus().setTotalAppendEntrySuccessForThisTerm(totalSuccess + 1);
-
+				
 				boolean majorityCount = false;
-
+				
 				if (totalNodes % 2 == 0) {
 					if (totalSuccess + 1 >= (totalNodes / 2) + 1) {
 						majorityCount = true;
@@ -611,6 +606,69 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	}
 
 	/**
+	 * check to see if we should discard WorkMessage msg
+	 * 
+	 * @param msg
+	 * @return true: we don't need to care about this msg, discard it (return)
+	 *         false: we have to read this msg or forward it.
+	 */
+	protected boolean shouldDiscard(WorkMessage msg) {
+		Header header = msg.getHeader();
+		int maxHop = header.getMaxHops();
+		int src = header.getNodeId();
+		long time = header.getTime();
+		long secret = msg.getSecret();
+
+		// WE DON'T HAVE GLOBLE Secret, if you set this, we can't talk to other
+		// team
+		// // if the secret not the same as network secret, discard
+		// if(secret != ServerState.getSecret()) {
+		// return true;
+		// }
+		// if max hop == 0, discard
+		if (maxHop == 0) {
+			// discard this message
+			return true;
+		}
+		// if message is older than 1 minutes (60000ms), discard
+		if ((System.currentTimeMillis() - time) > 60000) {
+			// discard this message
+			return true;
+		}
+
+		// if I send this msg to myself, discard
+		// avoid echo msg
+		if (src == state.getConf().getNodeId()) {
+			return true;
+		}
+
+		// the above cases should cover all the problems
+		return false;
+	}
+
+	/**
+	 * rebuild msg so it can be forward to other node, namely --maxHop
+	 * 
+	 * @param msg
+	 * @return WorkMessage with new maxHop = old maxHop - 1
+	 */
+	protected WorkMessage rebuildMessage(WorkMessage msg) {
+		Header header = msg.getHeader();
+		int maxHop = header.getMaxHops();
+		--maxHop;
+		// build new header from old header, only update maxHop
+		Header.Builder hb = Header.newBuilder();
+		hb.mergeFrom(header);
+		hb.setMaxHops(maxHop);
+
+		// build new msg from old msg, only update Header
+		WorkMessage.Builder wb = WorkMessage.newBuilder();
+		wb.mergeFrom(msg);
+		wb.setHeader(hb.build());
+		return wb.build();
+	}
+
+	/**
 	 * a message was received from the server. Here we dispatch the message to
 	 * the client's thread pool to minimize the time it takes to process other
 	 * messages.
@@ -624,8 +682,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
 
 		// System.out.println("i hit channelread ");
-
-		if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
+		if (shouldDiscard(msg)) {
+			return;
+		}
+		else if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
 			System.out.println("only for me message; i will handle it");
 			handleMessage(msg, ctx.channel());
 		} else if (msg.getHeader().getDestination() != state.getConf().getNodeId()
@@ -634,21 +694,25 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		} else if (msg.getHeader().getDestination() == -1
 				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
 			state.wmforward.addLast(msg);
-			System.out.println("message has been passed and now we will have a look at it"); // this
-																								// is
-																								// broadcast
-																								// message,
-																								// should
-																								// have
-																								// a
-																								// look
+			System.out.println("message has been passed and now we will have a look at it"); 
 			handleMessage(msg, ctx.channel());
+			msg = rebuildMessage(msg);
+			state.wmforward.addLast(msg);
+		} else if (msg.getHeader().getDestination() == -1
+				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
+			// this is broadcast message, should have a look
+			System.out.println("message has been passed and now we will have a look at it");
+			handleMessage(msg, ctx.channel());
+
+			msg = rebuildMessage(msg);
+			state.wmforward.addLast(msg);
 		} else if (msg.getHeader().getDestination() == -1
 				&& msg.getHeader().getNodeId() == state.getConf().getNodeId()) {
 			System.out.println("i sent this message and i am not processign");
 			// ((WorkMessage) msg).release();
 			ReferenceCountUtil.release(msg);
 		} else {
+			msg = rebuildMessage(msg);
 			// this is a private message for someone else, just forward it
 			state.wmforward.addLast(msg);
 		}

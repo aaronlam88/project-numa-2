@@ -253,30 +253,31 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		private void process_wmforward() {
 			WorkMessage msg = state.wmforward.poll();
 
-			if (msg != null) { // respect hop count
-				WorkMessage.Builder cm = WorkMessage.newBuilder();
-				cm.mergeFrom(msg);
-				Header.Builder hb = cm.getHeaderBuilder();
-				int hops = hb.getMaxHops() - 1;
-				hb.setMaxHops(hops);
-				cm.setHeader(hb);
-				msg = cm.build();
-				if (hops != 0) {
-					for (EdgeInfo ei : this.outboundEdges.map.values()) {
-						createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-						if (ei.getChannel() != null && ei.isActive()) {
+			if (msg != null) {
+				// // Already done by Aron
+				// // respect hop count
+				// WorkMessage.Builder cm = WorkMessage.newBuilder();
+				// cm.mergeFrom(msg);
+				// Header.Builder hb = cm.getHeaderBuilder();
+				// int hops = hb.getMaxHops() - 1;
+				// hb.setMaxHops(hops);
+				// cm.setHeader(hb);
+				// msg = cm.build();
+				// if (hops != 0) {
+				for (EdgeInfo ei : this.outboundEdges.map.values()) {
+					createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+					if (ei.getChannel() != null && ei.isActive()) {
+						ei.getChannel().writeAndFlush(msg);
+					} else {
+						try {
+							onAdd(ei);
 							ei.getChannel().writeAndFlush(msg);
-						} else {
-							try {
-								onAdd(ei);
-								ei.getChannel().writeAndFlush(msg);
-							} catch (Exception e) {
-								logger.error(
-										"error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
-							}
+						} catch (Exception e) {
+							logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 						}
 					}
 				}
+				// }
 			}
 		}
 
@@ -312,30 +313,31 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		private void process_cmforward() {
 			CommandMessage msg = state.cmforward.poll();
 
-			if (msg != null) { // respect hop count
-				CommandMessage.Builder cm = CommandMessage.newBuilder();
-				cm.mergeFrom(msg);
-				Header.Builder hb = cm.getHeaderBuilder();
-				int hops = hb.getMaxHops() - 1;
-				hb.setMaxHops(hops);
-				cm.setHeader(hb);
-				msg = cm.build();
-				if (hops != 0) {
-					for (EdgeInfo ei : this.outboundEdges.map.values()) {
-						createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-						if (ei.getChannel() != null && ei.isActive()) {
+			if (msg != null) {
+				// Already done by Aron
+				// respect hop count
+				// CommandMessage.Builder cm = CommandMessage.newBuilder();
+				// cm.mergeFrom(msg);
+				// Header.Builder hb = cm.getHeaderBuilder();
+				// int hops = hb.getMaxHops() - 1;
+				// hb.setMaxHops(hops);
+				// cm.setHeader(hb);
+				// msg = cm.build();
+				// if (hops != 0) {
+				for (EdgeInfo ei : this.outboundEdges.map.values()) {
+					createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+					if (ei.getChannel() != null && ei.isActive()) {
+						ei.getChannel().writeAndFlush(msg);
+					} else {
+						try {
+							onAdd(ei);
 							ei.getChannel().writeAndFlush(msg);
-						} else {
-							try {
-								onAdd(ei);
-								ei.getChannel().writeAndFlush(msg);
-							} catch (Exception e) {
-								logger.error(
-										"error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
-							}
+						} catch (Exception e) {
+							logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 						}
 					}
 				}
+				// }
 			}
 		}
 	}

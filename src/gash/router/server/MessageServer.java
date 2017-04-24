@@ -74,7 +74,6 @@ public class MessageServer {
 		StartWorkCommunication comm = new StartWorkCommunication(confManager.getConf());
 		logger.info("Work starting");
 		this.myState = comm.getServerState();
-
 		myState.getStatus().setTotalNodesDiscovered(myState.getConf().getTotalNodes());
 		confManager.setState(myState);
 	
@@ -144,6 +143,7 @@ public class MessageServer {
 		public ConfManager(File file) {
 			this.file = file;
 			this.timeStamp = 0;
+			init(this.file);
 		}
 
 		public final void run() {

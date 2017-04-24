@@ -121,14 +121,23 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	}
 
 	private WorkMessage addEntryMessage(){
-
+		
 		// send previous node a message to add entry to my node to create and maintain a ring
+
+		int toSendNodeId;
+
+		if(state.getConf().getNodeId()==1){
+			toSendNodeId=state.getConf().getTotalNodes();
+		}
+		else{
+			toSendNodeId=state.getConf().getNodeId()-1;
+		}
 
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setTime(System.currentTimeMillis());
 		hb.setMaxHops(state.getConf().getTotalNodes());
-		hb.setDestination((state.getConf().getNodeId())-1);
+		hb.setDestination(toSendNodeId);
 
 		AddEdge.Builder ae = AddEdge.newBuilder();
 		ae.setNodeToAdd(state.getConf().getNodeId());
@@ -192,7 +201,8 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 				WorkMessage wme = addEntryMessage();
 				ei.getChannel().writeAndFlush(wme);
 
-				state.getStatus().setTotalNodesDiscovered(0);
+				state.getStatus().setTotalNodesDiscovered(1);
+				state.getStatus().removeAllInList();
 				logger.info("send heart beat to " + ei.getRef());
 
 			} else {

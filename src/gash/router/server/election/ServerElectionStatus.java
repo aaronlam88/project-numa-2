@@ -59,6 +59,10 @@ public class ServerElectionStatus{
 		this.nodesThatRepliedBeats.add(nodeid);
 	}
 
+	public void removeAllInList(){
+		this.nodesThatRepliedBeats.clear();
+	}
+
 	public int getTotalNodesDiscovered() {
 		return totalNodesDiscovered;
 	}

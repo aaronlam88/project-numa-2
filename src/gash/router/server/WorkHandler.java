@@ -137,14 +137,25 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 					channel.writeAndFlush(wb.build());
 
-				} else {
-					// count total node count
+				} else{
+					//count total node count
 
-					System.out.println("recieved beat response;inside if");
+					System.out.println("recieved beat response;inside else");
 
-					int gtnd = state.getStatus().getTotalNodesDiscovered();
-					state.getStatus().setTotalNodesDiscovered(gtnd + 1);
+					if(state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())){
+						//do nothing
+						System.out.println("Message from this node already considered; doing nothing to process");
+					}
+					else{
 
+					state.getStatus().getNodesThatRepliedBeats().add(msg.getHeader().getNodeId());
+
+					int gtnd =state.getStatus().getTotalNodesDiscovered();
+					state.getStatus().setTotalNodesDiscovered(gtnd+1);
+
+					}
+
+		
 				}
 			} else if (msg.hasPing()) {
 				@SuppressWarnings("unused")

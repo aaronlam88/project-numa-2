@@ -102,7 +102,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 		System.out.println("before setting hopcount in createHB" + state.getConf().getTotalNodes());
 		hb.setMaxHops(state.getConf().getTotalNodes());
-		hb.setDestination(-1);
+		hb.setDestination(state.getConf().getNodeId());
 
 		/*
 		 * if(state.isLeader()) { hb.setMaxHops(-1);
@@ -260,16 +260,16 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 				int hops = hb.getMaxHops() - 1;
 				hb.setMaxHops(hops);
 				cm.setHeader(hb);
-
+				msg = cm.build();
 				if (hops != 0) {
 					for (EdgeInfo ei : this.outboundEdges.map.values()) {
 						createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 						if (ei.getChannel() != null && ei.isActive()) {
-							ei.getChannel().writeAndFlush(cm.build());
+							ei.getChannel().writeAndFlush(msg);
 						} else {
 							try {
 								onAdd(ei);
-								ei.getChannel().writeAndFlush(cm.build());
+								ei.getChannel().writeAndFlush(msg);
 							} catch (Exception e) {
 								logger.error(
 										"error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
@@ -319,16 +319,16 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 				int hops = hb.getMaxHops() - 1;
 				hb.setMaxHops(hops);
 				cm.setHeader(hb);
-
+				msg = cm.build();
 				if (hops != 0) {
 					for (EdgeInfo ei : this.outboundEdges.map.values()) {
 						createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 						if (ei.getChannel() != null && ei.isActive()) {
-							ei.getChannel().writeAndFlush(cm.build());
+							ei.getChannel().writeAndFlush(msg);
 						} else {
 							try {
 								onAdd(ei);
-								ei.getChannel().writeAndFlush(cm.build());
+								ei.getChannel().writeAndFlush(msg);
 							} catch (Exception e) {
 								logger.error(
 										"error in conecting to node " + ei.getRef() + " exception " + e.getMessage());

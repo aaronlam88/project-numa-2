@@ -63,7 +63,6 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 			this.serverState = serverState;
 		}
 	}
-	
 
 	/**
 	 * check to see if we should discard WorkMessage msg
@@ -121,7 +120,6 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		return cb.build();
 	}
 
-
 	/**
 	 * a message was received from the server. Here we dispatch the message to
 	 * the client's thread pool to minimize the time it takes to process other
@@ -135,7 +133,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, CommandMessage msg) throws Exception {
 		System.out.println("Channel Read");
-		if(shouldDiscard(msg)) {
+		if (shouldDiscard(msg)) {
 			return;
 		}
 		msg = rebuildMessage(msg);

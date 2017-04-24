@@ -30,6 +30,7 @@ enum TaskType{
      REQUESTWRITEFILE = 4;
      RESPONSEREADFILE = 5;
      RESPONSEWRITEFILE = 6;
+     REPLICATION = 7;
 }
 
 /*

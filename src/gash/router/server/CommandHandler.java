@@ -72,6 +72,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	 *         false: we have to read this msg or forward it.
 	 */
 	protected boolean shouldDiscard(CommandMessage msg) {
+		//System.out.println(msg);
 		Header header = msg.getHeader();
 		int maxHop = header.getMaxHops();
 		int src = header.getNodeId();
@@ -80,17 +81,21 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		// if max hop == 0, discard
 		if (maxHop == 0) {
 			// discard this message
+			System.out.println("Zero hops");
 			return true;
 		}
 		// if message is older than 1 minutes (60000ms), discard
-		if ((System.currentTimeMillis() - time) > 60000) {
-			// discard this message
-			return true;
-		}
+//		if ((System.currentTimeMillis() - time) > 60000) {
+//			System.out.println("Time");
+//			System.out.println(System.currentTimeMillis()); 
+//			// discard this message
+//			return true;
+//		}
 
 		// if I send this msg to myself, discard
 		// avoid echo msg
 		if (src == serverState.getConf().getNodeId()) {
+			System.out.println("node id");
 			return true;
 		}
 
@@ -377,7 +382,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 		try {
 			if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
-
+				System.out.println("Ping");
+				System.out.println(msg);
+				
 				Header.Builder hd = Header.newBuilder();
 				hd.setDestination(msg.getHeader().getNodeId());
 				hd.setNodeId(serverState.getConf().getNodeId());
@@ -389,16 +396,28 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				rb.setPing(true);
 				channel.writeAndFlush(rb.build());
 			} else if (msg.hasMessage()) {
+				System.out.println(msg);
 				logger.info(msg.getMessage());
 			} else if (msg.hasReq()) {
 				Request req = msg.getReq();
 				switch (req.getRequestType()) {
 				case REQUESTREADFILE:
+					System.out.println(msg);
 					processReadRequest(msg, channel);
 
 					break;
 
 				case REQUESTWRITEFILE:
+					CommandMessage.Builder replicate = CommandMessage.newBuilder();
+					replicate.mergeFrom(msg);
+					Header.Builder hb = replicate.getHeaderBuilder();
+					hb.setDestination(serverState.getConf().getRouting().get(0).getId());
+					hb.setMaxHops(1);
+					replicate.setHeader(hb);
+					serverState.cmforward.add(replicate.build());
+					
+				case REPLICATION:
+					System.out.println("Write file request");
 					processWriteRequest(msg, channel);
 					break;
 				default:

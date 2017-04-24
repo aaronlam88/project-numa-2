@@ -12,7 +12,7 @@ from generatedpy.common_pb2 import *
 from _socket import SHUT_RDWR
 
 
-CHUNK_SIZE = 1024 * 1024 * 10
+CHUNK_SIZE = 1024 * 1024 * 20
 NODE_ID = 10
 MAX_MSG_SIZE = CHUNK_SIZE + 1024
 
@@ -62,7 +62,8 @@ class NumaClient:
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
-        cm.header.time = 1
+        cm.header.time = long(time.time())
+        cm.header.max_hops = 10
         cm.header.destination = self.target
         cm.req.requestType = REQUESTWRITEFILE
         cm.req.rwb.filename = fileName
@@ -78,7 +79,8 @@ class NumaClient:
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
-        cm.header.time = 1
+        cm.header.time = long(time.time())
+        cm.header.max_hops = 10
         cm.header.destination = self.target
         cm.req.requestType = REQUESTREADFILE
         cm.req.rrb.filename = fileName
@@ -100,10 +102,12 @@ class NumaClient:
         return fileChunk
 
     def getPingMsg(self):
+#         print dir(generatedpy.common_pb2)
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
-        cm.header.time = 1
+        cm.header.time = long(time.time())
+        cm.header.max_hops = 10
         cm.header.destination = self.target
         cm.ping = True
         print cm
@@ -131,7 +135,7 @@ class NumaClient:
         cm.ParseFromString(msg)
         print cm
         locs = {}
-        if cm.resp.status == REDIRECTION:
+        if cm.resp.status == Response.REDIRECTION or cm.resp.status == Response.SUCCESS:
             filename = cm.resp.filename
             chunkd = {}
             for chunk in cm.resp.readResponse.chunk_location:

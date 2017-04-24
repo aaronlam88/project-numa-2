@@ -25,6 +25,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.lmax.disruptor.SleepingWaitStrategy;
+
 import gash.router.container.RoutingConf;
 import gash.router.server.edges.EdgeMonitor;
 import gash.router.server.tasks.NoOpBalancer;
@@ -45,38 +47,45 @@ public class MessageServer {
 	// public static final String sPort = "port";
 	// public static final String sPoolSize = "pool.size";
 
-	protected RoutingConf conf;
+	//protected RoutingConf conf;
 	protected boolean background = false;
-	 protected ServerState myState;
-	 protected Follower follower=null;
-
+	protected ServerState myState;
+	protected Follower follower = null;
+	protected ConfManager confManager;
 	/**
 	 * initialize the server with a configuration of it's resources
 	 * 
 	 * @param cfg
 	 */
 	public MessageServer(File cfg) {
-		init(cfg);
+		confManager = new ConfManager(cfg);
+		Thread cm = new Thread(confManager);
+		cm.start();
 	}
 
-	public MessageServer(RoutingConf conf) {
-		this.conf = conf;
-	}
+//	public MessageServer(RoutingConf conf) {
+//		this.conf = conf;
+//	}
 
 	public void release() {
 	}
 
 	public void startServer() {
-		StartWorkCommunication comm = new StartWorkCommunication(conf);
+		StartWorkCommunication comm = new StartWorkCommunication(confManager.getConf());
 		logger.info("Work starting");
 		this.myState = comm.getServerState();
+
 		myState.getStatus().setTotalNodesDiscovered(myState.getConf().getTotalNodes());
+
+
+		confManager.setState(myState);
+		
 
 		// We always start the worker in the background
 		Thread cthread = new Thread(comm);
 		cthread.start();
 
-		if (!conf.isInternalNode()) {
+		if (!confManager.getConf().isInternalNode()) {
 			StartCommandCommunication comm2 = new StartCommandCommunication(myState);
 			logger.info("Command starting");
 
@@ -92,46 +101,112 @@ public class MessageServer {
 	 * static because we need to get a handle to the factory from the shutdown
 	 * resource
 	 */
-	public static void shutdown() {
+	public void shutdown() {
 		logger.info("Server shutdown");
+		myState.keepWorking = false;
 		System.exit(0);
 	}
 
-	private void init(File cfg) {
-		if (!cfg.exists())
-			throw new RuntimeException(cfg.getAbsolutePath() + " not found");
-		// resource initialization - how message are processed
-		BufferedInputStream br = null;
-		try {
-			byte[] raw = new byte[(int) cfg.length()];
-			br = new BufferedInputStream(new FileInputStream(cfg));
-			br.read(raw);
-			conf = JsonUtil.decode(new String(raw), RoutingConf.class);
-			if (!verifyConf(conf))
-				throw new RuntimeException("verification of configuration failed");
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			if (br != null) {
+//	private void init(File cfg) {
+//		if (!cfg.exists())
+//			throw new RuntimeException(cfg.getAbsolutePath() + " not found");
+//		// resource initialization - how message are processed
+//		BufferedInputStream br = null;
+//		try {
+//			byte[] raw = new byte[(int) cfg.length()];
+//			br = new BufferedInputStream(new FileInputStream(cfg));
+//			br.read(raw);
+//			conf = JsonUtil.decode(new String(raw), RoutingConf.class);
+//			if (!verifyConf(conf))
+//				throw new RuntimeException("verification of configuration failed");
+//		} catch (Exception ex) {
+//			ex.printStackTrace();
+//		} finally {
+//			if (br != null) {
+//				try {
+//					br.close();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//	}
+//
+//	private boolean verifyConf(RoutingConf conf) {
+//		return (conf != null);
+//	}
+
+	private static class ConfManager implements Runnable {
+		RoutingConf conf;
+		private long timeStamp;
+		private File file;
+		protected ServerState myState;
+		private boolean update = false;
+		
+		public ConfManager(File file) {
+			this.file = file;
+			this.timeStamp = 0;
+		}
+
+		public final void run() {
+			
+			while(true){
 				try {
-					br.close();
-				} catch (IOException e) {
+					long timeStamp = file.lastModified();
+		
+					if (this.timeStamp != timeStamp) {
+						this.timeStamp = timeStamp;
+						init(file);
+						if(update){
+							myState.updateConf();
+						}
+					}
+					Thread.sleep(60000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
 		}
+
+		public void setState(ServerState myState){
+			this.myState = myState;
+			this.update = true;
+		}
+		private void init(File cfg) {
+			if (!cfg.exists())
+				throw new RuntimeException(cfg.getAbsolutePath() + " not found");
+			// resource initialization - how message are processed
+			BufferedInputStream br = null;
+			try {
+				byte[] raw = new byte[(int) cfg.length()];
+				br = new BufferedInputStream(new FileInputStream(cfg));
+				br.read(raw);
+				conf = JsonUtil.decode(new String(raw), RoutingConf.class);
+				if (!verifyConf(conf))
+					throw new RuntimeException("verification of configuration failed");
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			} finally {
+				if (br != null) {
+					try {
+						br.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		private boolean verifyConf(RoutingConf conf) {
+			return (conf != null);
+		}
+		
+		public RoutingConf getConf(){
+			return conf;
+		}
 	}
 
-	private boolean verifyConf(RoutingConf conf) {
-		return (conf != null);
-	}
-
-	/**
-	 * initialize netty communication
-	 * 
-	 * @param port
-	 *            The port to listen to
-	 */
 	private static class StartCommandCommunication implements Runnable {
 		RoutingConf conf;
 		ServerState state;
@@ -191,7 +266,7 @@ public class MessageServer {
 	 */
 	private static class StartWorkCommunication implements Runnable {
 		ServerState state;
-		 Follower follower=null;
+		Follower follower = null;
 
 		public StartWorkCommunication(RoutingConf conf) {
 			if (conf == null)
@@ -207,14 +282,14 @@ public class MessageServer {
 			Thread t = new Thread(emon);
 			t.start();
 
-			follower =new Follower(state);
+			follower = new Follower(state);
 			Thread th = new Thread(follower);
 			th.start();
 
 			logger.info("started the follower thread");
 		}
 
-		public ServerState getServerState(){
+		public ServerState getServerState() {
 			return this.state;
 		}
 

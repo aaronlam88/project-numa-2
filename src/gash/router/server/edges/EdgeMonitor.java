@@ -31,13 +31,11 @@ import pipe.work.Work.WorkState;
 import routing.Pipe.CommandMessage;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import gash.router.server.WorkInit;
 
 public class EdgeMonitor implements EdgeListener, Runnable {
 	protected static Logger logger = LoggerFactory.getLogger("edge monitor");
@@ -47,6 +45,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	private long dt = 20000;
 	private ServerState state;
 	private boolean forever = true;
+	
+	private EventLoopGroup group;
+
 
 	public EdgeMonitor(ServerState state) {
 		if (state == null)
@@ -57,6 +58,14 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		this.state = state;
 		this.state.setEmon(this);
 
+		updateEdges();
+		
+		group = new NioEventLoopGroup();
+
+	}
+
+	public void updateEdges(){
+		outboundEdges.clear();
 		if (state.getConf().getRouting() != null) {
 			for (RoutingEntry e : state.getConf().getRouting()) {
 				outboundEdges.addNode(e.getId(), e.getHost(), e.getPort());
@@ -67,7 +76,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		if (state.getConf().getHeartbeatDt() > this.dt)
 			this.dt = state.getConf().getHeartbeatDt();
 	}
-
+	
 	public void createInboundIfNew(int ref, String host, int port) {
 		inboundEdges.createIfNew(ref, host, port);
 	}
@@ -112,6 +121,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	public void shutdown() {
 		forever = false;
+		state.keepWorking = false;
 	}
 
 	@Override
@@ -129,7 +139,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		Thread thread3 = new Thread(pIncomming);
 		thread3.start();
 
-		while (forever) {
+		while (state.keepWorking) {
 			try {
 				sendHeartBeat();
 				Thread.sleep(dt);
@@ -154,18 +164,10 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 			} else {
 				try {
-					EventLoopGroup group = new NioEventLoopGroup();
-					WorkInit si = new WorkInit(state, false);
-					Bootstrap b = new Bootstrap();
-					b.group(group).channel(NioSocketChannel.class).handler(si);
-					b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
-					b.option(ChannelOption.TCP_NODELAY, true);
-					b.option(ChannelOption.SO_KEEPALIVE, true);
-
-					ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
-
-					ei.setChannel(channel.channel());
-					ei.setActive(channel.channel().isActive());
+					onAdd(ei);
+					WorkMessage wm = createHB(ei);
+					ei.getChannel().writeAndFlush(wm);
+					logger.info("send heart beat to " + ei.getRef());
 				} catch (Exception e) {
 					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 				}
@@ -174,14 +176,39 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	}
 
+	public void initConnect(EdgeInfo ei) {
+		if (ei == null)
+			return;
+		try {
+			WorkInit si = new WorkInit(state, false);
+			Bootstrap b = new Bootstrap();
+			b.group(group).channel(NioSocketChannel.class).handler(si);
+			b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
+			b.option(ChannelOption.TCP_NODELAY, true);
+			b.option(ChannelOption.SO_KEEPALIVE, true);
+
+			// Make the connection attempt.
+			ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
+
+			// want to monitor the connection to the server s.t. if we loose the
+			// connection, we can try to re-establish it.
+			ei.setChannel(channel.channel());
+			ei.setActive(channel.channel().isActive());
+		} catch (Exception e) {
+			// logger.error("cannot connect to node " + ei.getRef());
+		}
+	}
+
 	@Override
 	public synchronized void onAdd(EdgeInfo ei) {
-		// TODO check connection
+		createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+		initConnect(ei);
 	}
 
 	@Override
 	public synchronized void onRemove(EdgeInfo ei) {
-		// TODO ?
+		ei.setActive(false);
+		ei.getChannel().close();
 	}
 
 	public void setOutboundEdges(EdgeList outboundEdges){
@@ -212,7 +239,7 @@ class Process_WorkForward implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (state.keepWorking) {
 			if (!state.wmforward.isEmpty()) {
 				process_wmforward();
 			}
@@ -224,25 +251,15 @@ class Process_WorkForward implements Runnable {
 	}
 
 	private void process_wmforward() {
+		WorkMessage wm = state.wmforward.poll();
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
+			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive()) {
-				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-				WorkMessage wm = state.wmforward.poll();
 				ei.getChannel().writeAndFlush(wm);
 			} else {
 				try {
-					EventLoopGroup group = new NioEventLoopGroup();
-					WorkInit si = new WorkInit(state, false);
-					Bootstrap b = new Bootstrap();
-					b.group(group).channel(NioSocketChannel.class).handler(si);
-					b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
-					b.option(ChannelOption.TCP_NODELAY, true);
-					b.option(ChannelOption.SO_KEEPALIVE, true);
-
-					ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
-
-					ei.setChannel(channel.channel());
-					ei.setActive(channel.channel().isActive());
+					onAdd(ei);
+					ei.getChannel().writeAndFlush(wm);
 				} catch (Exception e) {
 					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 				}
@@ -267,7 +284,7 @@ class Process_CommandForward implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (state.keepWorking) {
 			if (!state.cmforward.isEmpty()) {
 				process_cmforward();
 			}
@@ -279,25 +296,15 @@ class Process_CommandForward implements Runnable {
 	}
 
 	private void process_cmforward() {
+		CommandMessage cm = state.cmforward.poll();
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
+			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive()) {
-				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-				CommandMessage cm = state.cmforward.poll();
 				ei.getChannel().writeAndFlush(cm);
 			} else {
 				try {
-					EventLoopGroup group = new NioEventLoopGroup();
-					WorkInit si = new WorkInit(state, false);
-					Bootstrap b = new Bootstrap();
-					b.group(group).channel(NioSocketChannel.class).handler(si);
-					b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
-					b.option(ChannelOption.TCP_NODELAY, true);
-					b.option(ChannelOption.SO_KEEPALIVE, true);
-
-					ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
-
-					ei.setChannel(channel.channel());
-					ei.setActive(channel.channel().isActive());
+					onAdd(ei);
+					ei.getChannel().writeAndFlush(cm);
 				} catch (Exception e) {
 					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 				}
@@ -321,7 +328,7 @@ class Process_InComming implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (state.keepWorking) {
 			if (!state.incoming.isEmpty()) {
 				process_incoming();
 			}
@@ -333,45 +340,35 @@ class Process_InComming implements Runnable {
 	}
 
 	private void process_incoming() {
+		FileChunkObject fco = state.incoming.remove();
+		Header.Builder hb = Header.newBuilder();
+		hb.setDestination(state.getCurrentLeader());
+		hb.setNodeId(state.getConf().getNodeId());
+		hb.setMaxHops(-1);
+
+		Node.Builder nb = Node.newBuilder();
+		nb.setHost(fco.getHostAddress());
+		nb.setPort(fco.getPort_id());
+		nb.setNodeId(fco.getNode_id());
+
+		RequestAppendItem.Builder append = RequestAppendItem.newBuilder();
+		append.setFilename(fco.getFileName());
+		append.setChunkId(fco.getChunk_id());
+		append.setNode(nb);
+
+		WorkMessage.Builder wb = WorkMessage.newBuilder();
+		wb.setRequestAppend(append.build());
+		wb.setHeader(hb.build());
+		
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
 			if (ei.getChannel() != null && ei.isActive()) {
-				FileChunkObject fco = state.incoming.remove();
-				Header.Builder hb = Header.newBuilder();
-				hb.setDestination(state.getCurrentLeader());
-				hb.setNodeId(state.getConf().getNodeId());
-				hb.setMaxHops(-1);
-
-				Node.Builder nb = Node.newBuilder();
-				nb.setHost(fco.getHostAddress());
-				nb.setPort(fco.getPort_id());
-				nb.setNodeId(fco.getNode_id());
-
-				RequestAppendItem.Builder append = RequestAppendItem.newBuilder();
-				append.setFilename(fco.getFileName());
-				append.setChunkId(fco.getChunk_id());
-				append.setNode(nb);
-
-				WorkMessage.Builder wb = WorkMessage.newBuilder();
-				wb.setRequestAppend(append.build());
-				wb.setHeader(hb.build());
-
 				ei.getChannel().writeAndFlush(wb.build());
 
 			} else {
 				try {
-					EventLoopGroup group = new NioEventLoopGroup();
-					WorkInit si = new WorkInit(state, false);
-					Bootstrap b = new Bootstrap();
-					b.group(group).channel(NioSocketChannel.class).handler(si);
-					b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
-					b.option(ChannelOption.TCP_NODELAY, true);
-					b.option(ChannelOption.SO_KEEPALIVE, true);
-
-					ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
-
-					ei.setChannel(channel.channel());
-					ei.setActive(channel.channel().isActive());
+					onAdd(ei);
+					ei.getChannel().writeAndFlush(wb.build());
 				} catch (Exception e) {
 					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 				}

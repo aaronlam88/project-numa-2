@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 public class ServerState {
 	protected static Logger logger = LoggerFactory.getLogger("ServerState");
-	
+	public boolean keepWorking = true;
 	// Performance monitor for task stealing 
 	private PerformanceMonitor perfmon;
 	private RoutingConf conf;
@@ -44,7 +44,7 @@ public class ServerState {
 	// Don't forward to same node which sent it.
 	// Can be forwarded by edge monitor. Content is pushed by commandhandler and
 	// workerhandler
-	public LinkedBlockingDeque<WorkMessage> wmforward;
+	public LinkedBlockingDeque<WorkMessage> wmforward;	
 	public LinkedBlockingDeque<CommandMessage> cmforward;
 
 	public ServerState(String dbpath) {
@@ -84,6 +84,9 @@ public class ServerState {
 
 	public void setConf(RoutingConf conf) {
 		this.conf = conf;
+	}
+	public void updateConf(){
+		emon.updateEdges();
 	}
 
 	public EdgeMonitor getEmon() {

@@ -22,7 +22,7 @@ public class EdgeInfo {
 	private String host;
 	private int port;
 	private long lastHeartbeat = -1;
-	private boolean active = true;
+	private boolean active = false;
 	private Channel channel;
 	public int retry;
 
@@ -32,6 +32,7 @@ public class EdgeInfo {
 		this.port = port;
 		this.retry = 0;
 	}
+
 
 	public int getRef() {
 		return ref;

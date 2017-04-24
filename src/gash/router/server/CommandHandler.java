@@ -269,7 +269,26 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 						serverState.incoming.addLast(nod);
 					}
-					System.out.println("File writeing " + chunkName);
+					System.out.println("File writting " + chunkName);
+
+					// Reply success to client
+					Header.Builder hd = Header.newBuilder();
+					hd.setDestination(msg.getHeader().getNodeId());
+					hd.setNodeId(serverState.getConf().getNodeId());
+					hd.setTime(System.currentTimeMillis());
+					hd.setMaxHops(-1);
+
+					Response.Builder rsp = Response.newBuilder();
+					rsp.setFilename(req.getRrb().getFilename());
+					rsp.setStatus(Response.Status.SUCCESS);
+					rsp.setResponseType(TaskType.RESPONSEWRITEFILE);
+
+					CommandMessage.Builder cm = CommandMessage.newBuilder();
+					cm.setHeader(hd);
+					cm.setResp(rsp);
+
+					channel.writeAndFlush(cm.build());
+
 				} catch (Exception e) {
 					System.out.println("Error exception" + e);
 				} finally {

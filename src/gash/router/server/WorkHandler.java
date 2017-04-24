@@ -148,7 +148,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					}
 					else{
 
-					state.getStatus().getNodesThatRepliedBeats().add(msg.getHeader().getNodeId());
+					state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
 
 					int gtnd =state.getStatus().getTotalNodesDiscovered();
 					state.getStatus().setTotalNodesDiscovered(gtnd+1);

@@ -70,6 +70,7 @@ public class MessageServer {
 		StartWorkCommunication comm = new StartWorkCommunication(conf);
 		logger.info("Work starting");
 		this.myState = comm.getServerState();
+		myState.getStatus().setTotalNodesDiscovered(myState.getConf().getTotalNodes());
 
 		// We always start the worker in the background
 		Thread cthread = new Thread(comm);

@@ -98,8 +98,52 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 												
 			} else if (msg.hasBeat()) {
 				@SuppressWarnings("unused")
-				Heartbeat hb = msg.getBeat();
-				logger.debug("heartbeat from " + msg.getHeader().getNodeId());
+				Heartbeat gb = msg.getBeat();
+
+				System.out.println(msg.toString());
+				System.out.println("heartbeat from " + msg.getHeader().getNodeId());
+
+				// retrieve requestType and work accordingly
+				// if request send response; if ersponse update the count
+
+				int mt =msg.getBeat().getMessageType();
+
+				if(mt==1){
+					//construct response to send
+					System.out.println("recieved beat request;inside if");
+
+					WorkState.Builder sb = WorkState.newBuilder();
+					sb.setEnqueued(state.getPerformanceStat());
+					sb.setProcessed(-1);
+
+					Heartbeat.Builder bb = Heartbeat.newBuilder();
+					bb.setState(sb);
+					bb.setMessageType(2);
+
+					Header.Builder hb = Header.newBuilder();
+					hb.setNodeId(state.getConf().getNodeId());
+					hb.setTime(System.currentTimeMillis());
+					hb.setMaxHops(state.getConf().getTotalNodes());
+					hb.setDestination(msg.getHeader().getNodeId());
+
+					WorkMessage.Builder wb = WorkMessage.newBuilder();
+					wb.setHeader(hb);
+					wb.setBeat(bb);
+					wb.setSecret(121316552);
+		
+					channel.writeAndFlush(wb.build());
+
+
+				}
+				else{
+					//count total node count
+
+					System.out.println("recieved beat response;inside if");
+
+					int gtnd =state.getStatus().getTotalNodesDiscovered();
+					state.getStatus().setTotalNodesDiscovered(gtnd+1);
+
+				}
 			} else if (msg.hasPing()) {
 				@SuppressWarnings("unused")
 				//logger.info("ping from " + msg.getHeader().getNodeId());
@@ -119,6 +163,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			} else if (msg.hasState()) {
 				@SuppressWarnings("unused")
 				WorkState s = msg.getState();
+
 			}
 			else if(msg.hasVrMsg()){
 				System.out.println("got vote request from node: "+ msg.getVrMsg().getCandidateId());

@@ -79,18 +79,28 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 		Heartbeat.Builder bb = Heartbeat.newBuilder();
 		bb.setState(sb);
+		bb.setMessageType(1);
 
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setTime(System.currentTimeMillis());
 
-		if(state.isLeader()) {
+		System.out.println("getting the count of nodes that has been discovered before setting hopcount: "+state.getStatus().getTotalNodesDiscovered());
+
+		state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
+
+		System.out.println("before setting hopcount in createHB" +state.getConf().getTotalNodes());
+		hb.setMaxHops(state.getConf().getTotalNodes());
+		hb.setDestination(-1);
+
+
+		/*if(state.isLeader()) {
 			hb.setMaxHops(-1);
 			hb.setDestination(state.getConf().getNodeId());
-		} else {
-			hb.setMaxHops(1);
+		} else {	
+			hb.setMaxHops(state.getConf().getTotalNodes());
 			hb.setDestination(ei.getRef());
-		}
+		}*/
 
 		WorkMessage.Builder wb = WorkMessage.newBuilder();
 		wb.setHeader(hb);
@@ -135,9 +145,13 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
 				//ei.retry = 0;
+				System.out.println("retriving the total numebr of nodes discovered in network:"+state.getStatus().getTotalNodesDiscovered());
+				state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
 				WorkMessage wm = createHB(ei);
 				ei.getChannel().writeAndFlush(wm);
+				state.getStatus().setTotalNodesDiscovered(0);
 				logger.info("send heart beat to " + ei.getRef());
+
 			} else {
 				try {
 					EventLoopGroup group = new NioEventLoopGroup();

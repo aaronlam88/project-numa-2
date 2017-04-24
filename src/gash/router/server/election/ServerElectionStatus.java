@@ -29,7 +29,7 @@ public class ServerElectionStatus{
 	private boolean electionTimeout=true;
 	private boolean heartbeatTimeout=false;
 	private int totalAppendEntrySuccessForThisTerm=0;
-
+	private int totalNodesDiscovered=0;
 
 
 	public ServerElectionStatus(){
@@ -48,6 +48,16 @@ public class ServerElectionStatus{
 		this.nextIndex=0;
 		this.prevIndex=1;
 		this.totalAppendEntrySuccessForThisTerm=0;
+	}
+	
+
+
+	public int getTotalNodesDiscovered() {
+		return totalNodesDiscovered;
+	}
+
+	public void setTotalNodesDiscovered(int tnd) {
+		this.totalNodesDiscovered = tnd;
 	}
 
 	public boolean isElectionTimeout() {

@@ -66,6 +66,8 @@ public class ServerState {
 		perfmon = new PerformanceMonitor();
 
 		logger.info("ServerElectionStatus values initialized");
+
+		
 	}
 
 	public String getDbPath() {

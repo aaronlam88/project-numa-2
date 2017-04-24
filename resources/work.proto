@@ -14,6 +14,8 @@ message WorkState {
 
 message Heartbeat {
    required WorkState state = 1;
+   optional int32 messageType=2 [default = 1];  // By default 1 - heartbeat request 
+   // 2 - heartbeat response
 }
 
 /**

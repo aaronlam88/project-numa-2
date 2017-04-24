@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 import gash.router.server.election.Follower;
+import gash.router.container.RoutingConf;
 import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.election.Candidate;
 
@@ -53,7 +54,6 @@ import pipe.appendEntries.AppendEntries.AppendEntry;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCountUtil;
-
 /**
  * The message handler processes json messages that are delimited by a 'newline'
  * 
@@ -157,7 +157,21 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 		
 				}
-			} else if (msg.hasPing()) {
+			}else if(msg.hasAddEdge()){
+				int id=msg.getAddEdge().getNodeToAdd();
+				String host=msg.getAddEdge().getHost();
+				int port=msg.getAddEdge().getPort();
+				int command=msg.getAddEdge().getCommand();
+				RoutingEntry re = new RoutingEntry(id,host,port,command);
+
+				RoutingConf rc = new RoutingConf();
+				rc.addEntry(re);
+
+				System.out.println("new entry added to the prevous node of newly added node");
+				System.out.println("message to add sent by: "+ msg.getHeader().getNodeId());
+				System.out.println("Edge added to: "+ state.getConf().getNodeId());
+			} 
+			else if (msg.hasPing()) {
 				@SuppressWarnings("unused")
 				// logger.info("ping from " + msg.getHeader().getNodeId());
 				boolean p = msg.getPing();

@@ -28,6 +28,7 @@ import pipe.common.Common.RequestAppendItem;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
+import pipe.work.Work.AddEdge;
 import routing.Pipe.CommandMessage;
 
 import io.netty.bootstrap.Bootstrap;
@@ -102,7 +103,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 		System.out.println("before setting hopcount in createHB" + state.getConf().getTotalNodes());
 		hb.setMaxHops(state.getConf().getTotalNodes());
-		hb.setDestination(state.getConf().getNodeId());
+		hb.setDestination(-1);
 
 		/*
 		 * if(state.isLeader()) { hb.setMaxHops(-1);
@@ -115,6 +116,31 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		wb.setHeader(hb);
 		wb.setBeat(bb);
 		wb.setSecret(121316546);
+
+		return wb.build();
+	}
+
+	private WorkMessage addEntryMessage(){
+
+		// send previous node a message to add entry to my node to create and maintain a ring
+
+		Header.Builder hb = Header.newBuilder();
+		hb.setNodeId(state.getConf().getNodeId());
+		hb.setTime(System.currentTimeMillis());
+		hb.setMaxHops(state.getConf().getTotalNodes());
+		hb.setDestination((state.getConf().getNodeId())-1);
+
+		AddEdge.Builder ae = AddEdge.newBuilder();
+		ae.setNodeToAdd(state.getConf().getNodeId());
+		//ae.setHost(state.getConf().getHostAddress());
+		ae.setHost("localhost");
+		ae.setPort(state.getConf().getWorkPort());
+		ae.setCommand(state.getConf().getCommandPort());
+
+		WorkMessage.Builder wb = WorkMessage.newBuilder();
+		wb.setHeader(hb);
+		wb.setAddEdge(ae);
+		wb.setSecret(121316552);
 
 		return wb.build();
 	}
@@ -138,6 +164,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		Thread thread3 = new Thread(pIncomming);
 		thread3.start();
 
+
 		while (state.keepWorking) {
 			try {
 				sendHeartBeat();
@@ -159,6 +186,12 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 				state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
 				WorkMessage wm = createHB(ei);
 				ei.getChannel().writeAndFlush(wm);
+
+				//
+
+				WorkMessage wme = addEntryMessage();
+				ei.getChannel().writeAndFlush(wme);
+
 				state.getStatus().setTotalNodesDiscovered(0);
 				logger.info("send heart beat to " + ei.getRef());
 

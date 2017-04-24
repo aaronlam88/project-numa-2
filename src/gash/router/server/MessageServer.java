@@ -76,10 +76,8 @@ public class MessageServer {
 		this.myState = comm.getServerState();
 
 		myState.getStatus().setTotalNodesDiscovered(myState.getConf().getTotalNodes());
-
-
 		confManager.setState(myState);
-		
+	
 
 		// We always start the worker in the background
 		Thread cthread = new Thread(comm);

@@ -18,6 +18,13 @@ message Heartbeat {
    // 2 - heartbeat response
 }
 
+message AddEdge{
+  required int32 nodeToAdd=1;
+  required string host=2 [default="localhost"];
+  required int32 port=3;
+  required int32 command=4;
+}
+
 /**
  * description of the work
  */
@@ -60,5 +67,6 @@ message WorkMessage {
 
       Results vr_result=16;
       AppendEntriesResult ae_result=17;
+      AddEdge addEdge=18;
    }
 }

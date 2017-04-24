@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 import gash.router.server.election.Follower;
+import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.election.Candidate;
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
@@ -101,6 +102,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 				System.out.println(msg.toString());
 				System.out.println("heartbeat from " + msg.getHeader().getNodeId());
+				int cpuUsage = msg.getBeat().getState().getEnqueued();
+				if(cpuUsage > state.CPUthreshhold){
+					startStealing(msg);
+				}
 
 				// retrieve requestType and work accordingly
 				// if request send response; if ersponse update the count
@@ -589,6 +594,18 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 		System.out.flush();
 
+	}
+
+	private void startStealing(WorkMessage msg) {
+		int node_id = msg.getHeader().getNodeId();
+		if (state.getConf().getRouting() != null) {
+			for (RoutingEntry e : state.getConf().getRouting()) {
+				if(e.getId() == node_id){
+					
+				}
+			}
+		}
+		
 	}
 
 	/**

@@ -26,7 +26,7 @@ public class ServerState {
 	private EdgeMonitor emon;
 	private TaskList tasks;
 	private ServerElectionStatus status;
-
+	public int CPUthreshhold = 60;
 	private int currentLeader; // current leader node id
 	private boolean isLeader;
 	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<>();

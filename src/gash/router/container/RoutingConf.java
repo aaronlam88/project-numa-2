@@ -130,15 +130,16 @@ public class RoutingConf {
 		private String host;
 		private int port;
 		private int id;
-		
+		private int command;
 
 		public RoutingEntry() {
 		}
 
-		public RoutingEntry(int id, String host, int port) {
+		public RoutingEntry(int id, String host, int port, int command) {
 			this.id = id;
 			this.host = host;
 			this.port = port;
+			this.command = command;
 		}
 
 		public String getHost() {
@@ -157,6 +158,14 @@ public class RoutingConf {
 			this.port = port;
 		}
 
+		public int getCommand() {
+			return command;
+		}
+
+		public void setCommand(int command) {
+			this.command = command;
+		}
+		
 		public int getId() {
 			return id;
 		}
@@ -164,7 +173,6 @@ public class RoutingConf {
 		public void setId(int id) {
 			this.id = id;
 		}
-
 
 
 	}

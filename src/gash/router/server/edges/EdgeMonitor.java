@@ -41,34 +41,35 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	protected static Logger logger = LoggerFactory.getLogger("edge monitor");
 
 	private EdgeList outboundEdges;
+	private EdgeList commandEdges;
 	private EdgeList inboundEdges;
 	private long dt = 20000;
 	private ServerState state;
-	private boolean forever = true;
-	
-	private EventLoopGroup group;
 
+	private EventLoopGroup group;
 
 	public EdgeMonitor(ServerState state) {
 		if (state == null)
 			throw new RuntimeException("state is null");
 
 		this.outboundEdges = new EdgeList();
+		this.commandEdges = new EdgeList();
 		this.inboundEdges = new EdgeList();
 		this.state = state;
 		this.state.setEmon(this);
 
 		updateEdges();
-		
+
 		group = new NioEventLoopGroup();
 
 	}
 
-	public void updateEdges(){
+	public void updateEdges() {
 		outboundEdges.clear();
 		if (state.getConf().getRouting() != null) {
 			for (RoutingEntry e : state.getConf().getRouting()) {
 				outboundEdges.addNode(e.getId(), e.getHost(), e.getPort());
+				commandEdges.addNode(e.getId(), e.getHost(), e.getCommand());
 			}
 		}
 
@@ -76,7 +77,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		if (state.getConf().getHeartbeatDt() > this.dt)
 			this.dt = state.getConf().getHeartbeatDt();
 	}
-	
+
 	public void createInboundIfNew(int ref, String host, int port) {
 		inboundEdges.createIfNew(ref, host, port);
 	}
@@ -94,33 +95,31 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setTime(System.currentTimeMillis());
 
-		System.out.println("getting the count of nodes that has been discovered before setting hopcount: "+state.getStatus().getTotalNodesDiscovered());
+		System.out.println("getting the count of nodes that has been discovered before setting hopcount: "
+				+ state.getStatus().getTotalNodesDiscovered());
 
 		state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
 
-		System.out.println("before setting hopcount in createHB" +state.getConf().getTotalNodes());
+		System.out.println("before setting hopcount in createHB" + state.getConf().getTotalNodes());
 		hb.setMaxHops(state.getConf().getTotalNodes());
 		hb.setDestination(-1);
 
-
-		/*if(state.isLeader()) {
-			hb.setMaxHops(-1);
-			hb.setDestination(state.getConf().getNodeId());
-		} else {	
-			hb.setMaxHops(state.getConf().getTotalNodes());
-			hb.setDestination(ei.getRef());
-		}*/
+		/*
+		 * if(state.isLeader()) { hb.setMaxHops(-1);
+		 * hb.setDestination(state.getConf().getNodeId()); } else {
+		 * hb.setMaxHops(state.getConf().getTotalNodes());
+		 * hb.setDestination(ei.getRef()); }
+		 */
 
 		WorkMessage.Builder wb = WorkMessage.newBuilder();
 		wb.setHeader(hb);
 		wb.setBeat(bb);
 		wb.setSecret(121316546);
-		
+
 		return wb.build();
 	}
 
 	public void shutdown() {
-		forever = false;
 		state.keepWorking = false;
 	}
 
@@ -130,11 +129,11 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		Process_WorkForward wFoward = new Process_WorkForward(inboundEdges, outboundEdges, state);
 		Thread thread1 = new Thread(wFoward);
 		thread1.start();
-		
-		Process_CommandForward cFoward = new Process_CommandForward(inboundEdges, outboundEdges, state);
+
+		Process_CommandForward cFoward = new Process_CommandForward(inboundEdges, commandEdges, state);
 		Thread thread2 = new Thread(cFoward);
 		thread2.start();
-		
+
 		Process_InComming pIncomming = new Process_InComming(inboundEdges, outboundEdges, state);
 		Thread thread3 = new Thread(pIncomming);
 		thread3.start();
@@ -154,8 +153,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	private void sendHeartBeat() {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
-				//ei.retry = 0;
-				System.out.println("retriving the total numebr of nodes discovered in network:"+state.getStatus().getTotalNodesDiscovered());
+				// ei.retry = 0;
+				System.out.println("retriving the total numebr of nodes discovered in network:"
+						+ state.getStatus().getTotalNodesDiscovered());
 				state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
 				WorkMessage wm = createHB(ei);
 				ei.getChannel().writeAndFlush(wm);
@@ -211,174 +211,175 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		ei.getChannel().close();
 	}
 
-	public void setOutboundEdges(EdgeList outboundEdges){
-		this.outboundEdges=outboundEdges;
+	public void setOutboundEdges(EdgeList outboundEdges) {
+		this.outboundEdges = outboundEdges;
 	}
 
-	public EdgeList getOutboundEdges(){
+	public EdgeList getOutboundEdges() {
 		return this.outboundEdges;
 	}
 
-	public void setInboundEdges(EdgeList inboundEdges){
-		this.inboundEdges=inboundEdges;
+	public void setInboundEdges(EdgeList inboundEdges) {
+		this.inboundEdges = inboundEdges;
 	}
 
+	class Process_WorkForward implements Runnable {
+		// protected static Logger logger =
+		// LoggerFactory.getLogger("Process_WorkForward");
 
-class Process_WorkForward implements Runnable {
-	//protected static Logger logger = LoggerFactory.getLogger("Process_WorkForward");
+		private EdgeList outboundEdges;
+		private EdgeList inboundEdges;
+		private ServerState state;
 
-	private EdgeList outboundEdges;
-	private EdgeList inboundEdges;
-	private ServerState state;
+		public Process_WorkForward(EdgeList in, EdgeList out, ServerState state) {
+			this.outboundEdges = out;
+			this.inboundEdges = in;
+			this.state = state;
+		}
 
-	public Process_WorkForward(EdgeList in, EdgeList out, ServerState state) {
-		this.outboundEdges = out;
-		this.inboundEdges = in;
-		this.state = state;
-	}
-
-	@Override
-	public void run() {
-		while (state.keepWorking) {
-			if (!state.wmforward.isEmpty()) {
-				process_wmforward();
+		@Override
+		public void run() {
+			while (state.keepWorking) {
+				if (!state.wmforward.isEmpty()) {
+					process_wmforward();
+				}
 			}
 		}
-	}
 
-	public void createInboundIfNew(int ref, String host, int port) {
-		inboundEdges.createIfNew(ref, host, port);
-	}
+//		public void createInboundIfNew(int ref, String host, int port) {
+//			inboundEdges.createIfNew(ref, host, port);
+//		}
 
-	private void process_wmforward() {
-		WorkMessage wm = state.wmforward.poll();
-		for (EdgeInfo ei : this.outboundEdges.map.values()) {
-			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-			if (ei.getChannel() != null && ei.isActive()) {
-				ei.getChannel().writeAndFlush(wm);
-			} else {
-				try {
-					onAdd(ei);
+		private void process_wmforward() {
+			WorkMessage wm = state.wmforward.poll();
+			for (EdgeInfo ei : this.outboundEdges.map.values()) {
+				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+				if (ei.getChannel() != null && ei.isActive()) {
 					ei.getChannel().writeAndFlush(wm);
-				} catch (Exception e) {
-					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+				} else {
+					try {
+						onAdd(ei);
+						ei.getChannel().writeAndFlush(wm);
+					} catch (Exception e) {
+						logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+					}
 				}
 			}
 		}
 	}
-}
 
+	class Process_CommandForward implements Runnable {
+		// private static Logger logger =
+		// LoggerFactory.getLogger("Process_CommandForward");
 
-class Process_CommandForward implements Runnable {
-	//private static Logger logger = LoggerFactory.getLogger("Process_CommandForward");
+		private EdgeList outboundEdges;
+		private EdgeList inboundEdges;
+		private ServerState state;
 
-	private EdgeList outboundEdges;
-	private EdgeList inboundEdges;
-	private ServerState state;
+		public Process_CommandForward(EdgeList in, EdgeList out, ServerState state) {
+			this.outboundEdges = out;
+			this.inboundEdges = in;
+			this.state = state;
+		}
 
-	public Process_CommandForward(EdgeList in, EdgeList out, ServerState state) {
-		this.outboundEdges = out;
-		this.inboundEdges = in;
-		this.state = state;
-	}
-
-	@Override
-	public void run() {
-		while (state.keepWorking) {
-			if (!state.cmforward.isEmpty()) {
-				process_cmforward();
+		@Override
+		public void run() {
+			while (state.keepWorking) {
+				if (!state.cmforward.isEmpty()) {
+					process_cmforward();
+				}
 			}
 		}
-	}
 
-	public void createInboundIfNew(int ref, String host, int port) {
-		inboundEdges.createIfNew(ref, host, port);
-	}
+//		public void createInboundIfNew(int ref, String host, int port) {
+//			inboundEdges.createIfNew(ref, host, port);
+//		}
 
-	private void process_cmforward() {
-		CommandMessage cm = state.cmforward.poll();
-		for (EdgeInfo ei : this.outboundEdges.map.values()) {
-			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-			if (ei.getChannel() != null && ei.isActive()) {
-				ei.getChannel().writeAndFlush(cm);
-			} else {
-				try {
-					onAdd(ei);
+		private void process_cmforward() {
+			CommandMessage cm = state.cmforward.poll();
+			for (EdgeInfo ei : this.outboundEdges.map.values()) {
+				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+				if (ei.getChannel() != null && ei.isActive()) {
 					ei.getChannel().writeAndFlush(cm);
-				} catch (Exception e) {
-					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+				} else {
+					try {
+						onAdd(ei);
+						ei.getChannel().writeAndFlush(cm);
+					} catch (Exception e) {
+						logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+					}
 				}
 			}
 		}
 	}
-}
 
-class Process_InComming implements Runnable {
-//	private static Logger logger = LoggerFactory.getLogger("Process_InComming");
+	class Process_InComming implements Runnable {
+		// private static Logger logger =
+		// LoggerFactory.getLogger("Process_InComming");
 
-	private EdgeList outboundEdges;
-	private EdgeList inboundEdges;
-	private ServerState state;
+		private EdgeList outboundEdges;
+		private EdgeList inboundEdges;
+		private ServerState state;
 
-	public Process_InComming(EdgeList in, EdgeList out, ServerState state) {
-		this.outboundEdges = out;
-		this.inboundEdges = in;
-		this.state = state;
-	}
+		public Process_InComming(EdgeList in, EdgeList out, ServerState state) {
+			this.outboundEdges = out;
+			this.inboundEdges = in;
+			this.state = state;
+		}
 
-	@Override
-	public void run() {
-		while (state.keepWorking) {
-			if (!state.incoming.isEmpty()) {
-				process_incoming();
+		@Override
+		public void run() {
+			while (state.keepWorking) {
+				if (!state.incoming.isEmpty()) {
+					process_incoming();
+				}
 			}
 		}
-	}
 
-	public void createInboundIfNew(int ref, String host, int port) {
-		inboundEdges.createIfNew(ref, host, port);
-	}
+//		public void createInboundIfNew(int ref, String host, int port) {
+//			inboundEdges.createIfNew(ref, host, port);
+//		}
 
-	private void process_incoming() {
-		FileChunkObject fco = state.incoming.remove();
-		Header.Builder hb = Header.newBuilder();
-		hb.setDestination(state.getCurrentLeader());
-		hb.setNodeId(state.getConf().getNodeId());
-		hb.setMaxHops(-1);
+		private void process_incoming() {
+			FileChunkObject fco = state.incoming.remove();
+			Header.Builder hb = Header.newBuilder();
+			hb.setDestination(state.getCurrentLeader());
+			hb.setNodeId(state.getConf().getNodeId());
+			hb.setMaxHops(-1);
 
-		Node.Builder nb = Node.newBuilder();
-		nb.setHost(fco.getHostAddress());
-		nb.setPort(fco.getPort_id());
-		nb.setNodeId(fco.getNode_id());
+			Node.Builder nb = Node.newBuilder();
+			nb.setHost(fco.getHostAddress());
+			nb.setPort(fco.getPort_id());
+			nb.setNodeId(fco.getNode_id());
 
-		RequestAppendItem.Builder append = RequestAppendItem.newBuilder();
-		append.setFilename(fco.getFileName());
-		append.setChunkId(fco.getChunk_id());
-		append.setNode(nb);
+			RequestAppendItem.Builder append = RequestAppendItem.newBuilder();
+			append.setFilename(fco.getFileName());
+			append.setChunkId(fco.getChunk_id());
+			append.setNode(nb);
 
-		WorkMessage.Builder wb = WorkMessage.newBuilder();
-		wb.setRequestAppend(append.build());
-		wb.setHeader(hb.build());
-		
-		for (EdgeInfo ei : this.outboundEdges.map.values()) {
-			createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-			if (ei.getChannel() != null && ei.isActive()) {
-				ei.getChannel().writeAndFlush(wb.build());
+			WorkMessage.Builder wb = WorkMessage.newBuilder();
+			wb.setRequestAppend(append.build());
+			wb.setHeader(hb.build());
 
-			} else {
-				try {
-					onAdd(ei);
+			for (EdgeInfo ei : this.outboundEdges.map.values()) {
+				createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+				if (ei.getChannel() != null && ei.isActive()) {
 					ei.getChannel().writeAndFlush(wb.build());
-				} catch (Exception e) {
-					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+
+				} else {
+					try {
+						onAdd(ei);
+						ei.getChannel().writeAndFlush(wb.build());
+					} catch (Exception e) {
+						logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+					}
 				}
 			}
 		}
+
 	}
 
-}
-
-	public EdgeList getInboundEdges(){
+	public EdgeList getInboundEdges() {
 		return this.inboundEdges;
 	}
 }

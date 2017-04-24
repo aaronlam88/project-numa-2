@@ -106,7 +106,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// retrieve requestType and work accordingly
 				// if request send response; if ersponse update the count
 
-				int mt =msg.getBeat().getMessageType();
+				int mt = msg.getBeat().getMessageType();
 
 				if(mt==1){
 					//construct response to send

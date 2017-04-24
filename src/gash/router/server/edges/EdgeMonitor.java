@@ -57,6 +57,11 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		this.state = state;
 		this.state.setEmon(this);
 
+		updateEdges();
+	}
+
+	public void updateEdges(){
+		outboundEdges.clear();
 		if (state.getConf().getRouting() != null) {
 			for (RoutingEntry e : state.getConf().getRouting()) {
 				outboundEdges.addNode(e.getId(), e.getHost(), e.getPort());
@@ -67,7 +72,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		if (state.getConf().getHeartbeatDt() > this.dt)
 			this.dt = state.getConf().getHeartbeatDt();
 	}
-
+	
 	public void createInboundIfNew(int ref, String host, int port) {
 		inboundEdges.createIfNew(ref, host, port);
 	}

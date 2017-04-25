@@ -528,6 +528,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					cb.addNode(request.getNode());
 					lb.setLocationList(request.getChunkId(), cb.build());
 					ServerState.hashTable.put(request.getFilename(), lb);
+					return;
 				} else {
 					for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
 						if (chunkLoc.getChunkid() == request.getChunkId()) {
@@ -589,6 +590,15 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with
 				// the chunk_id
+				if(locationList == null) {
+					ChunkLocation.Builder cb = ChunkLocation.newBuilder();
+					cb.addNode(request.getNode());
+					LocationList.Builder lb = LocationList.newBuilder();
+					lb.addLocationList(cb.build());
+					ServerState.hashTable.put(request.getFilename(), lb);
+					return;
+				}
+				
 				for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
 					if (chunkLoc.getChunkid() == request.getChunkId()) {
 						chunkLoc.getNodeList().add(request.getNode());

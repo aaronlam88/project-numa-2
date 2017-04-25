@@ -205,7 +205,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				state.getStatus().setHeartbeatTimeout(true);
 
 				if (receivedTerm >= thisTerm && receivedTerm >= thisLogTerm) {
-					if (receivedLogIndex >= thisLogIndex) {
+					if () {
 
 						System.out.println("conditions in vote request is approvable by this server");
 
@@ -224,7 +224,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						wm.setSecret(121316549);
 
 						// start timeout after voting
-						if (!state.getStatus().isIsVotedFor() && state.getStatus().getCandidate()
+						if (!state.getStatus().isIsVotedFor() 
 								&& !state.getStatus().getLeader()) {
 
 							System.out.println("sending the message back to requesting node");

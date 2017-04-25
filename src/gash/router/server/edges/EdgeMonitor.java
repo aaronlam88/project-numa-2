@@ -198,8 +198,8 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 				//
 
-				WorkMessage wme = addEntryMessage();
-				ei.getChannel().writeAndFlush(wme);
+				//WorkMessage wme = addEntryMessage();
+				//ei.getChannel().writeAndFlush(wme);
 
 				state.getStatus().setTotalNodesDiscovered(1);
 				state.getStatus().removeAllInList();

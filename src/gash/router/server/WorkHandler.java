@@ -490,10 +490,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					state.getStatus().setNextIndex(0);
 					state.getStatus().setPrevIndex(1);
 
-					/*
-					 * Candidate cn= new Candidate(state); Thread t= new
-					 * Thread(cn); t.run();
-					 */
+					
+					  Candidate cn= new Candidate(state); Thread t= new
+					  Thread(cn); t.run();
+					 
 
 				} else {
 					// set few terms

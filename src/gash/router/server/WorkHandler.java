@@ -205,7 +205,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				state.getStatus().setHeartbeatTimeout(true);
 
 				if (receivedTerm >= thisTerm && receivedTerm >= thisLogTerm) {
-					if () {
+					if (true) {
 
 						System.out.println("conditions in vote request is approvable by this server");
 
@@ -278,11 +278,11 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					state.getStatus().setTotalVotesRecievedForThisTerm(totalVotes + 1);
 
 					if (totalNodes % 2 == 0) {
-						if (totalVotes + 1 >= (totalNodes / 2) + 1) {
+						if (totalVotes + 1 >= (totalNodes / 2) ) {
 							majorityCount = true;
 						}
 					} else {
-						if (totalVotes + 1 >= (totalNodes / 2)) {
+						if (totalVotes + 1 >= (totalNodes / 2)+1) {
 							majorityCount = true;
 						}
 					}

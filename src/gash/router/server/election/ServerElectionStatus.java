@@ -28,7 +28,7 @@ public class ServerElectionStatus{
 	private int leaderId;     //initialized to zero which means the server initially has no leader and in a follower state, tyring to conenct to leader
 	private boolean electionTimeout=true;
 	private boolean heartbeatTimeout=false;
-	private int totalAppendEntrySuccessForThisTerm=0;
+	private int totalAppendEntrySuccessForThisTerm;
 	private int totalNodesDiscovered=1;
 	private ArrayList<Integer> nodesThatRepliedBeats = new ArrayList<Integer>();
 

@@ -156,7 +156,7 @@ message GetLog {
  */
 message RequestAppendItem {
 	required string filename = 1;
-	required int64 chunk_id = 2;
+	required int32 chunk_id = 2;
 	required Node node = 3;
 }
 

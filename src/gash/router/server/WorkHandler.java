@@ -51,6 +51,7 @@ import gash.router.server.election.Candidate;
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
 import io.netty.util.ReferenceCountUtil;
+
 /**
  * The message handler processes json messages that are delimited by a 'newline'
  * 
@@ -81,7 +82,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			System.out.println("ERROR: Unexpected content - " + msg);
 			return;
 		}
-		if(msg.getHeader().getDestination() < state.minRange && msg.getHeader().getDestination() > state.maxRange)
+		if (msg.getHeader().getDestination() < state.minRange && msg.getHeader().getDestination() > state.maxRange)
 			return;
 		// if (debug)
 		PrintUtil.printWork(msg);
@@ -101,7 +102,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				System.out.println(msg.toString());
 				System.out.println("heartbeat from " + msg.getHeader().getNodeId());
 				int cpuUsage = msg.getBeat().getState().getEnqueued();
-				if(cpuUsage > state.CPUthreshhold){
+				if (cpuUsage > state.CPUthreshhold) {
 					startStealing(msg);
 				}
 
@@ -135,41 +136,38 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 					channel.writeAndFlush(wb.build());
 
-				} else{
-					//count total node count
+				} else {
+					// count total node count
 
 					System.out.println("recieved beat response;inside else");
 
-					if(state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())){
-						//do nothing
+					if (state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())) {
+						// do nothing
 						System.out.println("Message from this node already considered; doing nothing to process");
+					} else {
+
+						state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
+
+						int gtnd = state.getStatus().getTotalNodesDiscovered();
+						state.getStatus().setTotalNodesDiscovered(gtnd + 1);
+
 					}
-					else{
 
-					state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
-
-					int gtnd =state.getStatus().getTotalNodesDiscovered();
-					state.getStatus().setTotalNodesDiscovered(gtnd+1);
-
-					}
-
-		
 				}
-			}else if(msg.hasAddEdge()){
-				int id=msg.getAddEdge().getNodeToAdd();
-				String host=msg.getAddEdge().getHost();
-				int port=msg.getAddEdge().getPort();
-				int command=msg.getAddEdge().getCommand();
-				RoutingEntry re = new RoutingEntry(id,host,port,command);
+			} else if (msg.hasAddEdge()) {
+				int id = msg.getAddEdge().getNodeToAdd();
+				String host = msg.getAddEdge().getHost();
+				int port = msg.getAddEdge().getPort();
+				int command = msg.getAddEdge().getCommand();
+				RoutingEntry re = new RoutingEntry(id, host, port, command);
 
 				RoutingConf rc = new RoutingConf();
 				rc.addEntry(re);
 
 				System.out.println("new entry added to the prevous node of newly added node");
-				System.out.println("message to add sent by: "+ msg.getHeader().getNodeId());
-				System.out.println("Edge added to: "+ state.getConf().getNodeId());
-			} 
-			else if (msg.hasPing()) {
+				System.out.println("message to add sent by: " + msg.getHeader().getNodeId());
+				System.out.println("Edge added to: " + state.getConf().getNodeId());
+			} else if (msg.hasPing()) {
 				@SuppressWarnings("unused")
 				// logger.info("ping from " + msg.getHeader().getNodeId());
 				boolean p = msg.getPing();
@@ -225,8 +223,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						wm.setSecret(121316549);
 
 						// start timeout after voting
-						if (!state.getStatus().isIsVotedFor() 
-								&& !state.getStatus().getLeader()) {
+						if (!state.getStatus().isIsVotedFor() && !state.getStatus().getLeader()) {
 
 							System.out.println("sending the message back to requesting node");
 							state.getStatus().setFollower(true);
@@ -279,11 +276,19 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					state.getStatus().setTotalVotesRecievedForThisTerm(totalVotes + 1);
 
 					if (totalNodes % 2 == 0) {
+<<<<<<< HEAD
 						if (totalVotes + 1 >= (totalNodes / 2)+1) {
 							majorityCount = true;
 						}
 					} else {
 						if (totalVotes + 1 >= (totalNodes / 2)) {
+=======
+						if (totalVotes + 1 >= (totalNodes / 2)) {
+							majorityCount = true;
+						}
+					} else {
+						if (totalVotes + 1 >= (totalNodes / 2) + 1) {
+>>>>>>> 21107db8779a64ebb577dd1774a7f6dbd26ff580
 							majorityCount = true;
 						}
 					}
@@ -428,10 +433,11 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						Header.Builder hb = Header.newBuilder();
 						hb.setNodeId(state.getConf().getNodeId());
-						
-						// send message back to leader  who sent append entry message
-						hb.setDestination(msg.getAeMsg().getLeaderId()); 
-						
+
+						// send message back to leader who sent append entry
+						// message
+						hb.setDestination(msg.getAeMsg().getLeaderId());
+
 						hb.setTime(System.currentTimeMillis());
 
 						AppendEntriesResult.Builder rb = AppendEntriesResult.newBuilder();
@@ -481,9 +487,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				int totalSuccess = state.getStatus().getTotalAppendEntrySuccessForThisTerm();
 
 				state.getStatus().setTotalAppendEntrySuccessForThisTerm(totalSuccess + 1);
-				
+
 				boolean majorityCount = false;
-				
+
 				if (totalNodes % 2 == 0) {
 					if (totalSuccess + 1 >= (totalNodes / 2) + 1) {
 						majorityCount = true;
@@ -507,10 +513,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					state.getStatus().setNextIndex(0);
 					state.getStatus().setPrevIndex(1);
 
-					
-					  Candidate cn= new Candidate(state); Thread t= new
-					  Thread(cn); t.run();
-					 
+					Candidate cn = new Candidate(state);
+					Thread t = new Thread(cn);
+					t.run();
 
 				} else {
 					// set few terms
@@ -540,6 +545,11 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// get locationList from filename
 				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with
+<<<<<<< HEAD
+=======
+				// the chunk_id
+
+>>>>>>> 21107db8779a64ebb577dd1774a7f6dbd26ff580
 				if (locationList == null) {
 					LocationList.Builder lb = LocationList.newBuilder();
 					ChunkLocation.Builder cb = ChunkLocation.newBuilder();
@@ -556,6 +566,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					ServerState.hashTable.put(request.getFilename(), locationList);
 				}
 
+<<<<<<< HEAD
+=======
+				
+>>>>>>> 21107db8779a64ebb577dd1774a7f6dbd26ff580
 
 				// append success, notify all FOLLOWERS
 				// build append message to send out
@@ -607,6 +621,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with
 				// the chunk_id
+<<<<<<< HEAD
 
 					if(locationList == null) {		
 					ChunkLocation.Builder cb = ChunkLocation.newBuilder();		
@@ -615,6 +630,15 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					lb.addLocationList(cb.build());		
 					ServerState.hashTable.put(request.getFilename(), lb);		
 					return;		
+=======
+				if(locationList == null) {
+					ChunkLocation.Builder cb = ChunkLocation.newBuilder();
+					cb.addNode(request.getNode());
+					LocationList.Builder lb = LocationList.newBuilder();
+					lb.addLocationList(cb.build());
+					ServerState.hashTable.put(request.getFilename(), lb);
+					return;
+>>>>>>> 21107db8779a64ebb577dd1774a7f6dbd26ff580
 				}
 				
 				for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
@@ -652,14 +676,14 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		int node_id = msg.getHeader().getNodeId();
 		if (state.getConf().getRouting() != null && state.getPerformanceStat() < 50) {
 			for (RoutingEntry e : state.getConf().getRouting()) {
-				if(e.getId() == node_id){
+				if (e.getId() == node_id) {
 					TaskStealer ts = new TaskStealer(e, 3, state);
 					Thread t = new Thread(ts);
 					t.start();
 				}
 			}
 		}
-		
+
 	}
 
 	/**
@@ -741,8 +765,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		// System.out.println("i hit channelread ");
 		if (shouldDiscard(msg)) {
 			return;
-		}
-		else if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
+		} else if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
 			System.out.println("only for me message; i will handle it");
 			handleMessage(msg, ctx.channel());
 		} else if (msg.getHeader().getDestination() != state.getConf().getNodeId()
@@ -751,7 +774,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		} else if (msg.getHeader().getDestination() == -1
 				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
 			state.wmforward.addLast(msg);
-			System.out.println("message has been passed and now we will have a look at it"); 
+			System.out.println("message has been passed and now we will have a look at it");
 			handleMessage(msg, ctx.channel());
 			msg = rebuildMessage(msg);
 			state.wmforward.addLast(msg);

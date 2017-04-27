@@ -44,7 +44,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	private EdgeList outboundEdges;
 	private EdgeList commandEdges;
 	private EdgeList inboundEdges;
-	private long dt = 20000;
+	private long dt = 3000;
 	private ServerState state;
 
 	private EventLoopGroup group;

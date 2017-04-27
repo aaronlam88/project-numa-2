@@ -39,6 +39,7 @@ import gash.router.server.election.Leader;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.PrintWriter;
 import java.io.FileWriter;
 import java.util.List;
 import java.util.Map;
@@ -278,11 +279,11 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					state.getStatus().setTotalVotesRecievedForThisTerm(totalVotes + 1);
 
 					if (totalNodes % 2 == 0) {
-						if (totalVotes + 1 >= (totalNodes / 2) ) {
+						if (totalVotes + 1 >= (totalNodes / 2)+1) {
 							majorityCount = true;
 						}
 					} else {
-						if (totalVotes + 1 >= (totalNodes / 2)+1) {
+						if (totalVotes + 1 >= (totalNodes / 2)) {
 							majorityCount = true;
 						}
 					}
@@ -368,7 +369,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						FileWriter fw = null;
 
 						try {
-							System.out.println("creating file");
+						/*	System.out.println("creating file");
 							File file = new File(state.getDbPath() + "/appendEntryLog.txt");
 
 							if (!file.exists()) {
@@ -383,9 +384,25 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 								bw.write(",");
 							}
 							bw.write("\n");
-							bw.flush();
+							bw.flush();*/
+
+
+							PrintWriter pw =new PrintWriter(new File(state.getDbPath()+"/appendEntryLog.txt"));
+							StringBuilder sb = new StringBuilder();
+
+							for (int i = 0; i < entry.size(); i++) {
+								sb.append(entry.get(i));
+								sb.append(",");
+							}
+
+							sb.append("\n");
+
+							pw.write(sb.toString());
+			
+							pw.close();
 
 							System.out.println("Entry appended in Workhandler for hearbeat success");
+
 
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -523,14 +540,22 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// get locationList from filename
 				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with
-				// the chunk_id
-				for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
-					if (chunkLoc.getChunkid() == request.getChunkId()) {
-						chunkLoc.getNodeList().add(request.getNode());
+				if (locationList == null) {
+					LocationList.Builder lb = LocationList.newBuilder();
+					ChunkLocation.Builder cb = ChunkLocation.newBuilder();
+					cb.addNode(request.getNode());
+					lb.setLocationList(request.getChunkId(), cb.build());
+					ServerState.hashTable.put(request.getFilename(), lb);
+					return;
+				} else {
+					for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
+						if (chunkLoc.getChunkid() == request.getChunkId()) {
+							chunkLoc.getNodeList().add(request.getNode());
+						}
 					}
+					ServerState.hashTable.put(request.getFilename(), locationList);
 				}
 
-				ServerState.hashTable.put(request.getFilename(), locationList);
 
 				// append success, notify all FOLLOWERS
 				// build append message to send out
@@ -582,6 +607,16 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with
 				// the chunk_id
+
+					if(locationList == null) {		
+					ChunkLocation.Builder cb = ChunkLocation.newBuilder();		
+					cb.addNode(request.getNode());		
+					LocationList.Builder lb = LocationList.newBuilder();		
+					lb.addLocationList(cb.build());		
+					ServerState.hashTable.put(request.getFilename(), lb);		
+					return;		
+				}
+				
 				for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
 					if (chunkLoc.getChunkid() == request.getChunkId()) {
 						chunkLoc.getNodeList().add(request.getNode());

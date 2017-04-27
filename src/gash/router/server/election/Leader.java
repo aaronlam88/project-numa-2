@@ -138,6 +138,7 @@ public class Leader implements Runnable{
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setDestination(-1);
 		hb.setTime(System.currentTimeMillis());
+		hb.setMaxHops(state.getConf().getTotalNodes());
 
 		AppendEntry.Builder ab = AppendEntry.newBuilder();
 		ab.setTerm(this.currentTerm);

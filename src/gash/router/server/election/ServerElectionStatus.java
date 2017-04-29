@@ -29,7 +29,7 @@ public class ServerElectionStatus{
 	private boolean electionTimeout=true;
 	private boolean heartbeatTimeout=false;
 	private int totalAppendEntrySuccessForThisTerm;
-	private int totalNodesDiscovered=1;
+	private int totalNodesDiscovered;
 	private ArrayList<Integer> nodesThatRepliedBeats = new ArrayList<Integer>();
 
 
@@ -49,6 +49,8 @@ public class ServerElectionStatus{
 		this.nextIndex=0;
 		this.prevIndex=1;
 		this.totalAppendEntrySuccessForThisTerm=1;
+		//this.totalNodesDiscovered=1;
+		this.totalVotesRecievedForThisTerm=0;
 	}
 	
 	public ArrayList<Integer> getNodesThatRepliedBeats(){

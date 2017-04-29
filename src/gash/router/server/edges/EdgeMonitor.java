@@ -111,8 +111,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setTime(System.currentTimeMillis());
 
-		System.out.println("getting the count of nodes that has been discovered before setting hopcount: "
-				+ state.getStatus().getTotalNodesDiscovered());
+		System.out.println("getting the count of nodes that has been discovered before setting hopcount: " + state.getStatus().getTotalNodesDiscovered());
 
 		state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
 
@@ -205,9 +204,10 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
 				// ei.retry = 0;
-				System.out.println("retriving the total numebr of nodes discovered in network:"
-						+ state.getStatus().getTotalNodesDiscovered());
-				state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
+			//	System.out.println("getting the count of nodes that has been discovered before setting hopcount::"
+						//+ state.getStatus().getTotalNodesDiscovered());
+				//state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
+				System.out.println("retrieving total nodes set as discovered in conf: " + state.getConf().getTotalNodes());
 				WorkMessage wm = createHB(ei);
 				ei.getChannel().writeAndFlush(wm);
 

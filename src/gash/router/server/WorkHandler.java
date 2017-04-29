@@ -34,6 +34,7 @@ import pipe.work.Work.Heartbeat;
 import pipe.work.Work.Task;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
+import pipe.work.Work.BeatResponse;
 import pipe.voteRequest.VoteRequest.Results;
 import gash.router.server.election.Leader;
 
@@ -82,8 +83,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			System.out.println("ERROR: Unexpected content - " + msg);
 			return;
 		}
-		if (msg.getHeader().getDestination() < state.minRange && msg.getHeader().getDestination() > state.maxRange)
-			return;
+		/*if (msg.getHeader().getDestination() < state.minRange && msg.getHeader().getDestination() > state.maxRange)
+			return;*/
 		// if (debug)
 		PrintUtil.printWork(msg);
 
@@ -91,15 +92,13 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 		try {
 			System.out.println("entered the try");
-			System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
+			//System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
 
-			if (msg.getHeader().getDestination() == -1 && state.isLeader()) {
-
-			} else if (msg.hasBeat()) {
+			 if (msg.hasBeat()) {
 				@SuppressWarnings("unused")
 				Heartbeat gb = msg.getBeat();
 
-				System.out.println(msg.toString());
+				//System.out.println(msg.toString());
 				System.out.println("heartbeat from " + msg.getHeader().getNodeId());
 				int cpuUsage = msg.getBeat().getState().getEnqueued();
 				if (cpuUsage > state.CPUthreshhold) {
@@ -109,52 +108,47 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// retrieve requestType and work accordingly
 				// if request send response; if ersponse update the count
 
-				int mt = msg.getBeat().getMessageType();
+					System.out.println("recieved beat request");
 
-				if (mt == 1) {
-					// construct response to send
-					System.out.println("recieved beat request;inside if");
-
-					WorkState.Builder sb = WorkState.newBuilder();
+					/*WorkState.Builder sb = WorkState.newBuilder();
 					sb.setEnqueued(state.getPerformanceStat());
-					sb.setProcessed(-1);
+					sb.setProcessed(-1);*/
 
-					Heartbeat.Builder bb = Heartbeat.newBuilder();
-					bb.setState(sb);
-					bb.setMessageType(2);
+					BeatResponse.Builder bb = BeatResponse.newBuilder();
+					//bb.setState(sb);
+					bb.setResponse(2);
 
 					Header.Builder hb = Header.newBuilder();
 					hb.setNodeId(state.getConf().getNodeId());
 					hb.setTime(System.currentTimeMillis());
-					hb.setMaxHops(state.getConf().getTotalNodes());
+					//hb.setMaxHops(state.getConf().getTotalNodes());
 					hb.setDestination(msg.getHeader().getNodeId());
 
 					WorkMessage.Builder wb = WorkMessage.newBuilder();
 					wb.setHeader(hb);
-					wb.setBeat(bb);
+					wb.setBeatReply(bb);
 					wb.setSecret(121316552);
 
 					channel.writeAndFlush(wb.build());
 
-				} else {
-					// count total node count
+			}else if(msg.hasBeatReply()){
 
-					System.out.println("recieved beat response;inside else");
+					System.out.println(msg.toString());
+
+					System.out.println("recieved beat response;inside hasReply(); sender node id: " + msg.getHeader().getNodeId());
 
 					if (state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())) {
 						// do nothing
 						System.out.println("Message from this node already considered; doing nothing to process");
 					} else {
-
+						System.out.println("heartbeat reply received; addding node to disocverednode list");
 						state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
 
 						int gtnd = state.getStatus().getTotalNodesDiscovered();
 						state.getStatus().setTotalNodesDiscovered(gtnd + 1);
 
 					}
-
-				}
-			} else if (msg.hasAddEdge()) {
+			}else if (msg.hasAddEdge()) {
 				int id = msg.getAddEdge().getNodeToAdd();
 				String host = msg.getAddEdge().getHost();
 				int port = msg.getAddEdge().getPort();
@@ -204,7 +198,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				state.getStatus().setHeartbeatTimeout(true);
 
 				if (receivedTerm >= thisTerm && receivedTerm >= thisLogTerm) {
-					if (true) {
+					if (receivedLogIndex>=thisLogIndex) {
 
 						System.out.println("conditions in vote request is approvable by this server");
 
@@ -311,6 +305,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 					} else {
 						// set a candidate state and start election again
+						System.out.println("we didnt recieve majority in the vote count");
 						state.getStatus().setFollower(false);
 						state.getStatus().setCandidate(true);
 						state.getStatus().setLeader(false);
@@ -385,7 +380,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							bw.flush();*/
 
 
-							PrintWriter pw =new PrintWriter(new File(state.getDbPath()+"/appendEntryLog.txt"));
+							PrintWriter pw =new PrintWriter(new File(state.getDbPath()+"/appendEntryLog_" + state.getConf().getNodeId() +".txt"));
 							StringBuilder sb = new StringBuilder();
 
 							for (int i = 0; i < entry.size(); i++) {
@@ -543,6 +538,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// the chunk_id
 
 				if (locationList == null) {
+					
 					LocationList.Builder lb = LocationList.newBuilder();
 					ChunkLocation.Builder cb = ChunkLocation.newBuilder();
 					cb.addNode(request.getNode());
@@ -744,28 +740,27 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		if (shouldDiscard(msg)) {
 			return;
 		} else if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
+
 			System.out.println("only for me message; i will handle it");
 			handleMessage(msg, ctx.channel());
+
 		} else if (msg.getHeader().getDestination() != state.getConf().getNodeId()
 				&& msg.getHeader().getDestination() != -1) {
-			state.wmforward.addLast(msg);
-		} else if (msg.getHeader().getDestination() == -1
-				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
-			state.wmforward.addLast(msg);
-			System.out.println("message has been passed and now we will have a look at it");
-			handleMessage(msg, ctx.channel());
-			msg = rebuildMessage(msg);
-			state.wmforward.addLast(msg);
-		} else if (msg.getHeader().getDestination() == -1
-				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
-			// this is broadcast message, should have a look
-			System.out.println("message has been passed and now we will have a look at it");
-			handleMessage(msg, ctx.channel());
 
+			state.wmforward.addLast(msg);
+
+		} else if (msg.getHeader().getDestination() == -1
+				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
+
+			//state.wmforward.addLast(msg);
+			System.out.println("message has been passed and now we will have a look at it");
+			handleMessage(msg, ctx.channel());
 			msg = rebuildMessage(msg);
 			state.wmforward.addLast(msg);
+
 		} else if (msg.getHeader().getDestination() == -1
 				&& msg.getHeader().getNodeId() == state.getConf().getNodeId()) {
+
 			System.out.println("i sent this message and i am not processign");
 			// ((WorkMessage) msg).release();
 			ReferenceCountUtil.release(msg);

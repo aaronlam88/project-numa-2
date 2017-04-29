@@ -43,7 +43,7 @@ public class Leader implements Runnable{
 
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
-	private long dt = 2000;
+	private long dt = 3000;
 	private boolean forever = true;
 
 	public Leader(ServerState state){
@@ -178,7 +178,7 @@ public class Leader implements Runnable{
 
 			System.out.println("wrinting to leaders file");
 
-			PrintWriter pw=new PrintWriter(new File(state.getDbPath()+"/appendEntryLog.txt"));
+			PrintWriter pw=new PrintWriter(new File(state.getDbPath()+"/appendEntryLog_" + state.getConf().getNodeId() +".txt"));
 			StringBuilder sb= new StringBuilder();
 
 			for(int i=0;i<entry.length;i++){

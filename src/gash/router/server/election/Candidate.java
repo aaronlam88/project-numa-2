@@ -42,7 +42,7 @@ public class Candidate implements Runnable{
 	
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
-	private long dt = 2000;
+	private long dt = 3000;
 	private boolean forever = true;
 
 	public Candidate(ServerState state){
@@ -79,13 +79,10 @@ public class Candidate implements Runnable{
 	@Override
 	public void run() {
 
-		this.isLeader=state.getStatus().getLeader();
-		this.leaderId=state.getStatus().getLeaderId();
-
 		while (!state.getStatus().getLeader() && state.getStatus().getCandidate()) {
 			try {
 				startElection();
-				Thread.sleep(2000);
+				Thread.sleep(dt);
 
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -93,7 +90,7 @@ public class Candidate implements Runnable{
 			}
 		}
 
-		if(this.isLeader && this.leaderId==state.getConf().getNodeId()){
+		if(state.getStatus().getLeader() && state.getStatus().getLeaderId()==state.getConf().getNodeId()){
 			Leader lead = new Leader(state);
 			Thread t = new Thread();
 			t.run();
@@ -122,7 +119,7 @@ public class Candidate implements Runnable{
 					//ei.retry = 0;
 					WorkMessage wm = createVoteRequest();
 					ei.getChannel().writeAndFlush(wm);
-					System.out.println("you did turn off");
+					//System.out.println("you did turn off");
 					//this.forever=false;
 				} else {
 					try {

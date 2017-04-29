@@ -15,12 +15,17 @@ message WorkState {
 message Heartbeat {
    required WorkState state = 1;
    optional int32 messageType=2 [default = 1];  // By default 1 - heartbeat request 
-   // 2 - heartbeat response
+   
+}
+
+message BeatResponse{
+  //required WorkState state=1;
+  required int32 response=2 [default = 2]; // 2 - heartbeat response
 }
 
 message AddEdge{
   required int32 nodeToAdd=1;
-  required string host=2 [default="localhost"];
+  optional string host=2 [default="localhost"];
   required int32 port=3;
   required int32 command=4;
 }
@@ -68,5 +73,6 @@ message WorkMessage {
       Results vr_result=16;
       AppendEntriesResult ae_result=17;
       AddEdge addEdge=18;
+      BeatResponse beatReply=19;
    }
 }

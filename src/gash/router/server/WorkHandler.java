@@ -50,7 +50,6 @@ import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.election.Candidate;
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
-import io.netty.util.ReferenceCountUtil;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -78,29 +77,29 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	 */
 	public void handleMessage(WorkMessage msg, Channel channel) {
 		if (msg == null) {
-			// TODO add logging
 			System.out.println("ERROR: Unexpected content - " + msg);
 			return;
 		}
+		
 		if (msg.getHeader().getDestination() < state.minRange && msg.getHeader().getDestination() > state.maxRange)
 			return;
-		// if (debug)
-		PrintUtil.printWork(msg);
-
-		// TODO How can you implement this without if-else statements?
 
 		try {
-			System.out.println("entered the try");
-			System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
+			//System.out.println("entered the try");
+			//System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
 
-			if (msg.getHeader().getDestination() == -1 && state.isLeader()) {
+//			if (msg.getHeader().getDestination() == -1 && state.isLeader()) {
+//
+//			} else 
+			if (msg.hasBeat()) {
+				//@SuppressWarnings("unused")
+				//Heartbeat gb = msg.getBeat();
 
-			} else if (msg.hasBeat()) {
-				@SuppressWarnings("unused")
-				Heartbeat gb = msg.getBeat();
-
-				System.out.println(msg.toString());
-				System.out.println("heartbeat from " + msg.getHeader().getNodeId());
+				//System.out.println(msg.toString());
+				System.out.println("Heartbeat from " + msg.getHeader().getNodeId());
+				System.out.println("DeltaT of message is: " +  (System.currentTimeMillis() - msg.getHeader().getTime()));
+				
+				// Trigger stealing on cpuUsage in heartbeat
 				int cpuUsage = msg.getBeat().getState().getEnqueued();
 				if (cpuUsage > state.CPUthreshhold) {
 					startStealing(msg);
@@ -112,9 +111,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				int mt = msg.getBeat().getMessageType();
 
 				if (mt == 1) {
-					// construct response to send
-					System.out.println("recieved beat request;inside if");
-
+					// A request heartbeat message
 					WorkState.Builder sb = WorkState.newBuilder();
 					sb.setEnqueued(state.getPerformanceStat());
 					sb.setProcessed(-1);
@@ -137,10 +134,6 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					channel.writeAndFlush(wb.build());
 
 				} else {
-					// count total node count
-
-					System.out.println("recieved beat response;inside else");
-
 					if (state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())) {
 						// do nothing
 						System.out.println("Message from this node already considered; doing nothing to process");
@@ -276,7 +269,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					state.getStatus().setTotalVotesRecievedForThisTerm(totalVotes + 1);
 
 					if (totalNodes % 2 == 0) {
-						if (totalVotes + 1 >= (totalNodes / 2)+1) {
+						if (totalVotes + 1 >= (totalNodes / 2) + 1) {
 							majorityCount = true;
 						}
 					} else {
@@ -367,25 +360,22 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						FileWriter fw = null;
 
 						try {
-						/*	System.out.println("creating file");
-							File file = new File(state.getDbPath() + "/appendEntryLog.txt");
+							/*
+							 * System.out.println("creating file"); File file =
+							 * new File(state.getDbPath() +
+							 * "/appendEntryLog.txt");
+							 * 
+							 * if (!file.exists()) { file.createNewFile(); }
+							 * 
+							 * fw = new FileWriter(file.getAbsoluteFile(),
+							 * true); bw = new BufferedWriter(fw);
+							 * 
+							 * for (int i = 0; i < entry.size(); i++) {
+							 * bw.write(entry.get(i)); bw.write(","); }
+							 * bw.write("\n"); bw.flush();
+							 */
 
-							if (!file.exists()) {
-								file.createNewFile();
-							}
-
-							fw = new FileWriter(file.getAbsoluteFile(), true);
-							bw = new BufferedWriter(fw);
-
-							for (int i = 0; i < entry.size(); i++) {
-								bw.write(entry.get(i));
-								bw.write(",");
-							}
-							bw.write("\n");
-							bw.flush();*/
-
-
-							PrintWriter pw =new PrintWriter(new File(state.getDbPath()+"/appendEntryLog.txt"));
+							PrintWriter pw = new PrintWriter(new File(state.getDbPath() + "/appendEntryLog.txt"));
 							StringBuilder sb = new StringBuilder();
 
 							for (int i = 0; i < entry.size(); i++) {
@@ -396,11 +386,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							sb.append("\n");
 
 							pw.write(sb.toString());
-			
+
 							pw.close();
 
 							System.out.println("Entry appended in Workhandler for hearbeat success");
-
 
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -471,11 +460,11 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				System.out.println("term appended entry for:" + msg.getAeResult().getTerm());
 				System.out.println("issucess: " + msg.getAeResult().getSuccess());
 
-				int followerNodeId = msg.getHeader().getNodeId();
-				int thisNode = state.getConf().getNodeId();
-				int successForTerm = msg.getAeResult().getTerm();
-				int currentTerm = state.getStatus().getCurrentTerm();
-				boolean isSuccess = msg.getAeResult().getSuccess();
+//				int followerNodeId = msg.getHeader().getNodeId();
+//				int thisNode = state.getConf().getNodeId();
+//				int successForTerm = msg.getAeResult().getTerm();
+//				int currentTerm = state.getStatus().getCurrentTerm();
+//				boolean isSuccess = msg.getAeResult().getSuccess();
 				int totalNodes = state.getConf().getTotalNodes();
 				int totalSuccess = state.getStatus().getTotalAppendEntrySuccessForThisTerm();
 
@@ -538,7 +527,6 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// get locationList from filename
 				LocationList.Builder locationList = ServerState.hashTable.get(request.getFilename());
 				// loop to get chunk_id, update the Node List associated with
-
 
 				// the chunk_id
 
@@ -609,7 +597,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// loop to get chunk_id, update the Node List associated with
 				// the chunk_id
 
-				if(locationList == null) {
+				if (locationList == null) {
 					ChunkLocation.Builder cb = ChunkLocation.newBuilder();
 					cb.addNode(request.getNode());
 					LocationList.Builder lb = LocationList.newBuilder();
@@ -618,7 +606,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					return;
 
 				}
-				
+
 				for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
 					if (chunkLoc.getChunkid() == request.getChunkId()) {
 						chunkLoc.getNodeList().add(request.getNode());
@@ -698,9 +686,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		// if I send this msg to myself, discard
 		// avoid echo msg
 		if (src == state.getConf().getNodeId()) {
+			System.out.println("Message has come around");
 			return true;
 		}
-
 		// the above cases should cover all the problems
 		return false;
 	}
@@ -740,38 +728,16 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
 
-		// System.out.println("i hit channelread ");
 		if (shouldDiscard(msg)) {
 			return;
 		} else if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
-			System.out.println("only for me message; i will handle it");
 			handleMessage(msg, ctx.channel());
-		} else if (msg.getHeader().getDestination() != state.getConf().getNodeId()
-				&& msg.getHeader().getDestination() != -1) {
-			state.wmforward.addLast(msg);
-		} else if (msg.getHeader().getDestination() == -1
-				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
-			state.wmforward.addLast(msg);
-			System.out.println("message has been passed and now we will have a look at it");
+		} else if (msg.getHeader().getDestination() == -1) {
 			handleMessage(msg, ctx.channel());
 			msg = rebuildMessage(msg);
 			state.wmforward.addLast(msg);
-		} else if (msg.getHeader().getDestination() == -1
-				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
-			// this is broadcast message, should have a look
-			System.out.println("message has been passed and now we will have a look at it");
-			handleMessage(msg, ctx.channel());
-
-			msg = rebuildMessage(msg);
-			state.wmforward.addLast(msg);
-		} else if (msg.getHeader().getDestination() == -1
-				&& msg.getHeader().getNodeId() == state.getConf().getNodeId()) {
-			System.out.println("i sent this message and i am not processign");
-			// ((WorkMessage) msg).release();
-			ReferenceCountUtil.release(msg);
 		} else {
 			msg = rebuildMessage(msg);
-			// this is a private message for someone else, just forward it
 			state.wmforward.addLast(msg);
 		}
 	}
@@ -781,5 +747,4 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		logger.error("Unexpected exception from downstream.", cause);
 		ctx.close();
 	}
-
 }

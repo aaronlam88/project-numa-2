@@ -38,14 +38,8 @@ public class Leader implements Runnable{
 	private ServerState state;
 	private int leaderId=0;
 	private int currentTerm;
-	private int lastAppliedIndex;
-	private int lastCommitIndex;
-
 	private EdgeList outboundEdges;
-	private EdgeList inboundEdges;
 	private long dt = 2000;
-	private boolean forever = true;
-
 	public Leader(ServerState state){
 		this.state=state;
 		this.isLeader=state.getStatus().getLeader();
@@ -53,11 +47,8 @@ public class Leader implements Runnable{
 
 		System.out.println("leader true or not::  "+isLeader);
 
-		if (state == null)
-			throw new RuntimeException("state is null");
-
 		this.outboundEdges = new EdgeList();
-		this.inboundEdges = new EdgeList();
+		new EdgeList();
 		
 		state.getStatus().setTotalVotesRecievedForThisTerm(0);
 
@@ -95,8 +86,7 @@ public class Leader implements Runnable{
 			this.currentTerm=state.getStatus().getCurrentTerm();
 			state.getStatus().setTotalAppendEntrySuccessForThisTerm(0);
 
-			EdgeMonitor em = new EdgeMonitor(state);
-			//this.outboundEdges= em.getOutboundEdges();
+			new EdgeMonitor(state);
 
 
 			for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
@@ -178,7 +168,7 @@ public class Leader implements Runnable{
 
 			System.out.println("wrinting to leaders file");
 
-			PrintWriter pw=new PrintWriter(new File(state.getDbPath()+"/appendEntryLog.txt"));
+			PrintWriter pw=new PrintWriter(new File(state.getDbPath()+"/appendEntryLog_" + state.getConf().getNodeId() + ".txt"));
 			StringBuilder sb= new StringBuilder();
 
 			for(int i=0;i<entry.length;i++){

@@ -14,6 +14,8 @@
  * under the License.
  */
 package gash.router.server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -27,6 +29,8 @@ public class MessageApp {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		
+				
 		if (args.length == 0) {
 			System.out.println("usage: server <config file>");
 			System.exit(1);

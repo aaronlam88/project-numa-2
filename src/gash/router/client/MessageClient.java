@@ -49,7 +49,7 @@ public class MessageClient {
 		hb.setTime(System.currentTimeMillis());
 		hb.setDestination(1);
 		CommandMessage.Builder rb = CommandMessage.newBuilder();
-		rb.setMessage("Kavish Jain");
+		//rb.setMessage("Kavish Jain");
 		rb.setHeader(hb);
 		rb.setPing(true);
 

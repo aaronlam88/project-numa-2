@@ -45,10 +45,10 @@ public class PrintUtil {
 			System.out.println(PrintUtil.gap + "Message: " + msg.getErr().getMessage());
 		} else if (msg.hasPing())
 			System.out.println("Ping");
-		else if (msg.hasMessage()) {
-			System.out.println("Message");
-			System.out.println(PrintUtil.gap + "Msg:  " + msg.getMessage());
-		}
+//		else if (msg.hasMessage()) {
+//			System.out.println("Message");
+//			System.out.println(PrintUtil.gap + "Msg:  " + msg.getMessage());
+//		}
 		// else if (msg.hasResp()) {
 		// System.out.println("Message");
 		// }

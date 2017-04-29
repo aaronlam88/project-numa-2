@@ -10,6 +10,7 @@ class UserClient:
 
     def run(self):
         nc = NumaClient(host, port, target)
+        nc.createSession()
         forever = True
         while (forever):
             print("\n")
@@ -38,22 +39,22 @@ class UserClient:
                 print "Chunks created : "
                 print len(chunks)
                 index = 0
-                nc.createSession()
+                
                 for chunk in chunks:
                     req = nc.getWriteChunkMsg(filename, chunks, index)
                     index += 1
                     nc.sendData(req)
-                nc.deleteSession()
+#                 nc.deleteSession()
 
             elif choice1 == "2":
                 print "Performing read operation!!!"
                 print "Enter the name of the file: "
                 filename = raw_input()
-                nc.createSession()
+#                 nc.createSession()
                 fr = nc.getReadFileMsg(filename)
                 nc.sendData(fr)
                 locs = nc.processReadFileResp(nc.receiveMsg())
-                nc.deleteSession()
+#                 nc.deleteSession()
                 
                 if(filename in locs.keys()):
                     ch = locs[filename]
@@ -73,12 +74,12 @@ class UserClient:
                 # DELETE
                 print "Performing ping operation!!!"
                 req = nc.getPingMsg()
-                nc.createSession()
+#                 nc.createSession()
                 firsttime = datetime.now().time()
                 nc.sendData(req)
                 pingrply = nc.receiveMsg()
                 nc.processPingMsg(pingrply, firsttime)
-                nc.deleteSession()
+#                 nc.deleteSession()
             else:
                 print "Wrong Selection"
         print "\nGoodbye\n"

@@ -5,15 +5,13 @@ option java_package = "routing";
 import "common.proto";
 
 message CommandMessage {
-   required Header header = 1;
+ required Header header = 1;
 
-    oneof payload {
-      // a client (external) sanity check for testing
-      bool ping = 3;
-      string message = 4;
-      Failure err = 5;
-      Request req = 6;
-      Response resp = 7;
-
-   }
+ oneof payload {
+ // a client (external) sanity check for testing
+ bool ping = 3;
+ Failure err = 5;
+ Request request = 6;
+ Response response = 7;
+ }
 }

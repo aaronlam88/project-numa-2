@@ -37,14 +37,14 @@ public class RequestHandler extends SimpleChannelInboundHandler<CommandMessage> 
 			if (msg.hasPing()) {
 				logger.info("ping from " + msg.getHeader().getNodeId());
 				//logger.info("ping from " + msg.getMessage());
-			} else if (msg.hasMessage()) {
-				logger.info(msg.getMessage());
-			} else if (msg.hasErr()) {
-				logger.error("ERROR: " + msg.getMessage());
-			} else if (msg.hasReq()) {
-				// TODO handle request
-			} else if (msg.hasResp()) {
-				// TODO handle respond
+//			} else if (msg.hasMessage()) {
+//				logger.info(msg.getMessage());
+//			} else if (msg.hasErr()) {
+//				logger.error("ERROR: " + msg.getMessage());
+//			} else if (msg.hasReq()) {
+//				// TODO handle request
+//			} else if (msg.hasResp()) {
+//				// TODO handle respond
 			}
 
 		} catch (Exception e) {

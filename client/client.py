@@ -13,7 +13,7 @@ from _socket import SHUT_RDWR
 
 
 CHUNK_SIZE = 1024 * 1024 * 20
-NODE_ID = 10
+NODE_ID = 99
 MAX_MSG_SIZE = CHUNK_SIZE + 1024
 
 
@@ -28,13 +28,15 @@ class NumaClient:
         self.port = port
         self.target = targetNode
         self.session_request = 0
+        self.h = "192.168.1.31"
+        self.p = 4168
 
     def createSession(self):
         '''
         Start socket session
         '''
-        self.sd.connect((self.host, self.port))
-        print("Host:", self.host, "@ Port:", self.port)
+        self.sd.connect((self.h, self.p))
+        print("Host:", self.h, "@ Port:", self.p)
 
     def deleteSession(self):
         '''
@@ -51,8 +53,8 @@ class NumaClient:
         cm.header.message_id = self.session_request
         cm.header.time = 1
         cm.header.destination = self.target
-        cm.req.requestType = REQUESTREADFILE
-        cm.req.rrb.filename = fileName
+        cm.request.requestType = REQUESTREADFILE
+        cm.request.rrb.filename = fileName
 
         print "Read file request created: "
         print cm
@@ -63,13 +65,13 @@ class NumaClient:
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
         cm.header.time = long(time.time())
-        cm.header.max_hops = 10
+        cm.header.max_hops = NODE_ID
         cm.header.destination = self.target
-        cm.req.requestType = REQUESTWRITEFILE
-        cm.req.rwb.filename = fileName
-        cm.req.rwb.chunk.chunk_id = index
-        cm.req.rwb.num_of_chunks = len(chunks)
-        cm.req.rwb.chunk.chunk_data = chunks[index]
+        cm.request.requestType = REQUESTWRITEFILE
+        cm.request.rwb.filename = fileName
+        cm.request.rwb.chunk.chunk_id = index
+        cm.request.rwb.num_of_chunks = len(chunks)
+        cm.request.rwb.chunk.chunk_data = chunks[index]
 
         print "Write chunk request created for chunk id: " 
         print index
@@ -80,11 +82,11 @@ class NumaClient:
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
         cm.header.time = long(time.time())
-        cm.header.max_hops = 10
+        cm.header.max_hops = NODE_ID
         cm.header.destination = self.target
-        cm.req.requestType = REQUESTREADFILE
-        cm.req.rrb.filename = fileName
-        cm.req.rrb.chunk_id = chunkID
+        cm.request.requestType = REQUESTREADFILE
+        cm.request.rrb.filename = fileName
+        cm.request.rrb.chunk_id = chunkID
 
         print "Read chunk request created: "
         print cm
@@ -106,8 +108,8 @@ class NumaClient:
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
-        cm.header.time = long(time.time())
-        cm.header.max_hops = 10
+        cm.header.time = long(time.time()) * 1000000
+        cm.header.max_hops = NODE_ID
         cm.header.destination = self.target
         cm.ping = True
         print cm
@@ -135,10 +137,10 @@ class NumaClient:
         cm.ParseFromString(msg)
         print cm
         locs = {}
-        if cm.resp.status == Response.REDIRECTION or cm.resp.status == Response.SUCCESS:
-            filename = cm.resp.filename
+        if cm.response.status == Response.REDIRECTION or cm.response.status == Response.SUCCESS:
+            filename = cm.response.filename
             chunkd = {}
-            for chunk in cm.resp.readResponse.chunk_location:
+            for chunk in cm.response.readResponse.chunk_location:
                 chunk_id = chunk.chunkid
                 nodd = {}
                 for nod in chunk.node:
@@ -154,15 +156,15 @@ class NumaClient:
         print "Processing read chunk response"
         cm = CommandMessage()
         cm.ParseFromString(msg)
-        if cm.resp.status == Success:
-            filename = cm.resp.filename
-            data = cm.resp.readResponse.chunk.chunk_data
+        if cm.response.status == Success:
+            filename = cm.response.filename
+            data = cm.response.readResponse.chunk.chunk_data
             # filename += cm.resp.readResponse.chunk.chunk_id
             fileDir = os.path.dirname(os.path.realpath('__file__'))
             path = os.path.join(fileDir, filename)
             fout = open(path, "a")
             fout.write(data)
-            print "Chunk id: " + str(cm.resp.readResponse.chunk.chunk_id) + " written to file " + filename
+            print "Chunk id: " + str(cm.response.readResponse.chunk.chunk_id) + " written to file " + filename
         else:
             print "Fail response received: " + str(cm.resp.status)
 

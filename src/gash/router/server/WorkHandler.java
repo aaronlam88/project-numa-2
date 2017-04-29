@@ -539,7 +539,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					return;
 				} else {
 					for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
-						if (chunkLoc.getChunkid() == request.getChunkId()) {
+						if (chunkLoc.getChunkId() == request.getChunkId()) {
 							chunkLoc.getNodeList().add(request.getNode());
 						}
 					}
@@ -608,7 +608,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				}
 
 				for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
-					if (chunkLoc.getChunkid() == request.getChunkId()) {
+					if (chunkLoc.getChunkId() == request.getChunkId()) {
 						chunkLoc.getNodeList().add(request.getNode());
 					}
 				}
@@ -678,10 +678,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			return true;
 		}
 		// if message is older than 1 minutes (60000ms), discard
-		if ((System.currentTimeMillis() - time) > 60000) {
-			// discard this message
-			return true;
-		}
+//		if ((System.currentTimeMillis() - time) > 60000) {
+//			// discard this message
+//			return true;
+//		}
 
 		// if I send this msg to myself, discard
 		// avoid echo msg

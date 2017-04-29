@@ -76,12 +76,10 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		Header header = msg.getHeader();
 		int maxHop = header.getMaxHops();
 		int src = header.getNodeId();
-		long time = header.getTime();
+		// long time = header.getTime();
 
 		// if max hop == 0, discard
 		if (maxHop == 0) {
-			// discard this message
-			System.out.println("Zero hops");
 			return true;
 		}
 		// if message is older than 1 minutes (60000ms), discard
@@ -95,7 +93,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		// if I send this msg to myself, discard
 		// avoid echo msg
 		if (src == serverState.getConf().getNodeId()) {
-			System.out.println("node id");
+			System.out.println("Message has come around");
 			return true;
 		}
 
@@ -141,9 +139,20 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		if (shouldDiscard(msg)) {
 			return;
 		}
+		if (msg.hasPing()) {
+			System.out.println("Ping from " + msg.getHeader().getNodeId());
+			System.out.println(msg);
+		}
 		msg = rebuildMessage(msg);
+
 		// System.out.println(msg.toString());
-		if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
+		if (msg.getHeader().getNodeId() == 99
+				&& msg.getHeader().getDestination() != serverState.getConf().getNodeId()) { 
+			// client node id
+			serverState.getEmon().addClientEdge(msg.getHeader().getNodeId(), ctx);
+		} else if (msg.getHeader().getDestination() == 99){
+			serverState.getEmon().sendClient(msg);
+		} else if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
 				CommandMessageEvent event = ringBuffer.get(sequence);
@@ -190,7 +199,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 	}
 
 	private void processReadRequest(CommandMessage msg, Channel channel) throws Exception {
-		Request req = msg.getReq();
+		Request req = msg.getRequest();
 
 		if (req.hasRrb()) {
 
@@ -249,7 +258,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				if (locationList != null) {
 
 					for (ChunkLocation chunkLocation : locationList.getLocationListList()) {
-						rrb.setChunkLocation(chunkLocation.getChunkid(), chunkLocation);
+						rrb.setChunkLocation(chunkLocation.getChunkId(), chunkLocation);
 					}
 				} else {
 					System.out.println("No file found");
@@ -257,7 +266,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				}
 			}
 			rsp.setReadResponse(rrb);
-			cm.setResp(rsp);
+			cm.setResponse(rsp);
 			channel.writeAndFlush(cm.build());
 		} else {
 			throw new Exception("Invalid message type");
@@ -265,7 +274,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 	}
 
 	public void processWriteRequest(CommandMessage msg, Channel channel) throws Exception {
-		Request req = msg.getReq();
+		Request req = msg.getRequest();
 		if (req.hasRwb()) {
 			if (req.getRwb().hasChunk()) {
 
@@ -294,7 +303,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						nb.setNodeId(serverState.getConf().getNodeId());
 
 						ChunkLocation.Builder clb = ChunkLocation.newBuilder();
-						clb.setChunkid(chunkId);
+						clb.setChunkId(chunkId);
 						clb.setNode(clb.getNodeCount(), nb.build());
 
 						LocationList.Builder lb;
@@ -352,7 +361,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 					CommandMessage.Builder cm = CommandMessage.newBuilder();
 					cm.setHeader(hd);
-					cm.setResp(rsp);
+					cm.setResponse(rsp);
 
 					channel.writeAndFlush(cm.build());
 
@@ -387,9 +396,6 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 		try {
 			if (msg.hasPing()) {
-				logger.info("ping from " + msg.getHeader().getNodeId());
-				System.out.println("Ping");
-				System.out.println(msg);
 
 				Header.Builder hd = Header.newBuilder();
 				hd.setDestination(msg.getHeader().getNodeId());
@@ -401,16 +407,15 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 				rb.setPing(true);
 				channel.writeAndFlush(rb.build());
-			} else if (msg.hasMessage()) {
-				System.out.println(msg);
-				logger.info(msg.getMessage());
-			} else if (msg.hasReq()) {
-				Request req = msg.getReq();
+				// } else if (msg.hasMessage()) {
+				// System.out.println(msg);
+				// logger.info(msg.getMessage());
+			} else if (msg.hasRequest()) {
+				Request req = msg.getRequest();
 				switch (req.getRequestType()) {
 				case REQUESTREADFILE:
 					System.out.println(msg);
 					processReadRequest(msg, channel);
-
 					break;
 
 				case REQUESTWRITEFILE:
@@ -422,16 +427,16 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					replicate.setHeader(hb);
 					serverState.cmforward.add(replicate.build());
 
-				case REPLICATION:
-					System.out.println("Write file request");
-					processWriteRequest(msg, channel);
-					break;
+					// case REPLICATION:
+					// System.out.println("Write file request");
+					// processWriteRequest(msg, channel);
+					// break;
 				default:
 					break;
 				}
 
-			} else if (msg.hasResp()) {
-				Response res = msg.getResp();
+			} else if (msg.hasRequest()) {
+				Response res = msg.getResponse();
 				switch (res.getResponseType()) {
 				case REQUESTWRITEFILE:
 					if (res.hasStatus()) {

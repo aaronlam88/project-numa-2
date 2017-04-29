@@ -49,6 +49,7 @@ import gash.router.server.election.Follower;
 import gash.router.container.RoutingConf;
 import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.election.Candidate;
+import io.netty.util.ReferenceCountUtil;
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
 
@@ -108,7 +109,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					System.out.println("recieved beat request");
 
 
-				if (mt == 1) {
+				/*if (mt == 1) {
 					// A request heartbeat message
 					WorkState.Builder sb = WorkState.newBuilder();
 
@@ -688,10 +689,10 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			return true;
 		}
 		// if message is older than 1 minutes (60000ms), discard
-		if ((System.currentTimeMillis() - time) > 60000) {
+		//if ((System.currentTimeMillis() - time) > 60000) {
 			// discard this message
-			return true;
-		}
+		//	return true;
+		//}
 
 		// if I send this msg to myself, discard
 		// avoid echo msg

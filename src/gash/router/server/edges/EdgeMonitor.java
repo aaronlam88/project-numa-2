@@ -33,6 +33,7 @@ import routing.Pipe.CommandMessage;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -44,6 +45,8 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	private EdgeList outboundEdges;
 	private EdgeList commandEdges;
 	private EdgeList inboundEdges;
+	private EdgeInfo clientEdge;
+	
 	private long dt = 3000;
 	private ServerState state;
 
@@ -64,7 +67,19 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		group = new NioEventLoopGroup();
 
 	}
-
+	
+	public void addClientEdge(int hostId, ChannelHandlerContext ctx){
+		clientEdge = new EdgeInfo(hostId, " ", 2048);
+		clientEdge.setChannel(ctx.channel());
+	}
+	public EdgeInfo getClientEdge(){
+		return clientEdge;
+	}
+	
+	public void sendClient(CommandMessage msg){
+		clientEdge.getChannel().writeAndFlush(msg);
+	}
+	
 	public void updateEdges() {
 		outboundEdges.clear();
 		if (state.getConf().getRouting() != null) {

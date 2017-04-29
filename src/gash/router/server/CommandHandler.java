@@ -72,7 +72,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 	 *         false: we have to read this msg or forward it.
 	 */
 	protected boolean shouldDiscard(CommandMessage msg) {
-		//System.out.println(msg);
+		// System.out.println(msg);
 		Header header = msg.getHeader();
 		int maxHop = header.getMaxHops();
 		int src = header.getNodeId();
@@ -85,12 +85,12 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 			return true;
 		}
 		// if message is older than 1 minutes (60000ms), discard
-//		if ((System.currentTimeMillis() - time) > 60000) {
-//			System.out.println("Time");
-//			System.out.println(System.currentTimeMillis()); 
-//			// discard this message
-//			return true;
-//		}
+		// if ((System.currentTimeMillis() - time) > 60000) {
+		// System.out.println("Time");
+		// System.out.println(System.currentTimeMillis());
+		// // discard this message
+		// return true;
+		// }
 
 		// if I send this msg to myself, discard
 		// avoid echo msg
@@ -151,6 +151,8 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 			} finally {
 				ringBuffer.publish(sequence);
 			}
+		} else if (msg.getHeader().getDestination() == serverState.getEmon().getClientEdge().getRef()) {
+			serverState.getEmon().sendClient(msg);
 		} else {
 			serverState.cmforward.addLast(msg);
 		}
@@ -378,8 +380,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			logger.error("ERROR: Unexpected content - " + msg);
 			return;
 		}
-		
-		if(msg.getHeader().getDestination() < serverState.minRange && msg.getHeader().getDestination() > serverState.maxRange)
+
+		if (msg.getHeader().getDestination() < serverState.minRange
+				&& msg.getHeader().getDestination() > serverState.maxRange)
 			return;
 
 		try {
@@ -387,7 +390,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				logger.info("ping from " + msg.getHeader().getNodeId());
 				System.out.println("Ping");
 				System.out.println(msg);
-				
+
 				Header.Builder hd = Header.newBuilder();
 				hd.setDestination(msg.getHeader().getNodeId());
 				hd.setNodeId(serverState.getConf().getNodeId());
@@ -418,7 +421,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					hb.setMaxHops(1);
 					replicate.setHeader(hb);
 					serverState.cmforward.add(replicate.build());
-					
+
 				case REPLICATION:
 					System.out.println("Write file request");
 					processWriteRequest(msg, channel);

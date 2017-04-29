@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import gash.router.container.RoutingConf;
 import gash.router.server.edges.EdgeMonitor;
 import gash.router.server.tasks.TaskList;
+import io.netty.channel.ChannelHandlerContext;
 import gash.router.server.election.ServerElectionStatus;
 
 import pipe.common.Common.LocationList;
@@ -32,7 +33,6 @@ public class ServerState {
 	
 	public int minRange = 30;
 	public int maxRange = 39;
-
 	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<>();
 	
 	private String dataPath;

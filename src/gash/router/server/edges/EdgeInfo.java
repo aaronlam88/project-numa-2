@@ -26,6 +26,13 @@ public class EdgeInfo {
 	private Channel channel;
 	public int retry;
 
+	EdgeInfo() {
+		this.ref = 0;
+		this.host = "";
+		this.port = 0;
+		this.retry = 0;
+	}
+	
 	EdgeInfo(int ref, String host, int port) {
 		this.ref = ref;
 		this.host = host;

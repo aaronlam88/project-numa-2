@@ -13,7 +13,7 @@ from _socket import SHUT_RDWR
 
 
 CHUNK_SIZE = 1024 * 1024 * 20
-NODE_ID = 99
+NODE_ID = 33
 MAX_MSG_SIZE = CHUNK_SIZE + 1024
 
 
@@ -28,7 +28,7 @@ class NumaClient:
         self.port = port
         self.target = targetNode
         self.session_request = 0
-        self.h = "192.168.1.31"
+        self.h = "192.168.1.30"
         self.p = 4168
 
     def createSession(self):

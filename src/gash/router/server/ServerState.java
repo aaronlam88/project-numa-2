@@ -30,7 +30,7 @@ public class ServerState {
 	public int CPUthreshhold = 60;
 	private int currentLeader; // current leader node id
 	private boolean isLeader;
-	
+	public int client_id = 33;
 	public int minRange = 30;
 	public int maxRange = 39;
 	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<>();

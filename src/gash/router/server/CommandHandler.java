@@ -146,12 +146,10 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		msg = rebuildMessage(msg);
 
 		// System.out.println(msg.toString());
-		if (msg.getHeader().getNodeId() == 99
-				&& msg.getHeader().getDestination() != serverState.getConf().getNodeId()) { 
+		if (msg.getHeader().getNodeId() == serverState.client_id
+				&& msg.getHeader().getDestination() != serverState.getConf().getNodeId()) {
 			// client node id
 			serverState.getEmon().addClientEdge(msg.getHeader().getNodeId(), ctx);
-		} else if (msg.getHeader().getDestination() == 99){
-			serverState.getEmon().sendClient(msg);
 		} else if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
@@ -160,8 +158,6 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 			} finally {
 				ringBuffer.publish(sequence);
 			}
-		} else if (msg.getHeader().getDestination() == serverState.getEmon().getClientEdge().getRef()) {
-			serverState.getEmon().sendClient(msg);
 		} else {
 			serverState.cmforward.addLast(msg);
 		}
@@ -267,7 +263,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			}
 			rsp.setReadResponse(rrb);
 			cm.setResponse(rsp);
-			channel.writeAndFlush(cm.build());
+			// channel.writeAndFlush(cm.build());
+			serverState.cmforward.addLast(cm.build());
+
 		} else {
 			throw new Exception("Invalid message type");
 		}
@@ -363,7 +361,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					cm.setHeader(hd);
 					cm.setResponse(rsp);
 
-					channel.writeAndFlush(cm.build());
+					serverState.cmforward.addLast(cm.build());
+
+					// channel.writeAndFlush(cm.build());
 
 				} catch (Exception e) {
 					System.out.println("Error exception" + e);
@@ -406,10 +406,9 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				rb.setHeader(hd);
 
 				rb.setPing(true);
-				channel.writeAndFlush(rb.build());
-				// } else if (msg.hasMessage()) {
-				// System.out.println(msg);
-				// logger.info(msg.getMessage());
+
+				serverState.cmforward.addLast(rb.build());
+
 			} else if (msg.hasRequest()) {
 				Request req = msg.getRequest();
 				switch (req.getRequestType()) {

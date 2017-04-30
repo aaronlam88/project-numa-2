@@ -42,28 +42,16 @@ public class MessageServer {
 
 	protected static HashMap<Integer, ServerBootstrap> bootstrap = new HashMap<Integer, ServerBootstrap>();
 
-	// public static final String sPort = "port";
-	// public static final String sPoolSize = "pool.size";
-
-	//protected RoutingConf conf;
 	protected boolean background = false;
 	protected ServerState myState;
 	protected Follower follower = null;
 	protected ConfManager confManager;
-	/**
-	 * initialize the server with a configuration of it's resources
-	 * 
-	 * @param cfg
-	 */
+
 	public MessageServer(File cfg) {
 		confManager = new ConfManager(cfg);
 		Thread cm = new Thread(confManager);
 		cm.start();
 	}
-
-//	public MessageServer(RoutingConf conf) {
-//		this.conf = conf;
-//	}
 
 	public void release() {
 	}
@@ -74,7 +62,6 @@ public class MessageServer {
 		this.myState = comm.getServerState();
 		myState.getStatus().setTotalNodesDiscovered(myState.getConf().getTotalNodes());
 		confManager.setState(myState);
-	
 
 		// We always start the worker in the background
 		Thread cthread = new Thread(comm);
@@ -102,42 +89,13 @@ public class MessageServer {
 		System.exit(0);
 	}
 
-//	private void init(File cfg) {
-//		if (!cfg.exists())
-//			throw new RuntimeException(cfg.getAbsolutePath() + " not found");
-//		// resource initialization - how message are processed
-//		BufferedInputStream br = null;
-//		try {
-//			byte[] raw = new byte[(int) cfg.length()];
-//			br = new BufferedInputStream(new FileInputStream(cfg));
-//			br.read(raw);
-//			conf = JsonUtil.decode(new String(raw), RoutingConf.class);
-//			if (!verifyConf(conf))
-//				throw new RuntimeException("verification of configuration failed");
-//		} catch (Exception ex) {
-//			ex.printStackTrace();
-//		} finally {
-//			if (br != null) {
-//				try {
-//					br.close();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		}
-//	}
-//
-//	private boolean verifyConf(RoutingConf conf) {
-//		return (conf != null);
-//	}
-
 	private static class ConfManager implements Runnable {
 		RoutingConf conf;
 		private long timeStamp;
 		private File file;
 		protected ServerState myState;
 		private boolean update = false;
-		
+
 		public ConfManager(File file) {
 			this.file = file;
 			this.timeStamp = 0;
@@ -145,15 +103,15 @@ public class MessageServer {
 		}
 
 		public final void run() {
-			
-			while(true){
+
+			while (true) {
 				try {
 					long timeStamp = file.lastModified();
-		
+
 					if (this.timeStamp != timeStamp) {
 						this.timeStamp = timeStamp;
 						init(file);
-						if(update){
+						if (update) {
 							myState.updateConf();
 						}
 					}
@@ -165,10 +123,11 @@ public class MessageServer {
 			}
 		}
 
-		public void setState(ServerState myState){
+		public void setState(ServerState myState) {
 			this.myState = myState;
 			this.update = true;
 		}
+
 		private void init(File cfg) {
 			if (!cfg.exists())
 				throw new RuntimeException(cfg.getAbsolutePath() + " not found");
@@ -197,8 +156,8 @@ public class MessageServer {
 		private boolean verifyConf(RoutingConf conf) {
 			return (conf != null);
 		}
-		
-		public RoutingConf getConf(){
+
+		public RoutingConf getConf() {
 			return conf;
 		}
 	}
@@ -210,6 +169,8 @@ public class MessageServer {
 		public StartCommandCommunication(ServerState state) {
 			this.conf = state.getConf();
 			this.state = state;
+			this.state.getEmon().setGlobalNeighbours();
+			this.state.getEmon().FetchGlobalNeighbours();
 		}
 
 		public void run() {

@@ -36,6 +36,8 @@ public class RoutingConf {
 	private int nodeId;
 	private int commandPort;
 	private String hostAddress = "0.0.0.0";
+	private String redishost = "localhost";
+	private int redisport = 4568;
 	private int workPort;
 	private boolean internalNode = true;
 	private int heartbeatDt = 2000;
@@ -122,6 +124,22 @@ public class RoutingConf {
 
 	public int getTotalNodes(){
 		return totalNodes;
+	}
+
+	public String getRedishost() {
+		return redishost;
+	}
+
+	public void setRedishost(String redishost) {
+		this.redishost = redishost;
+	}
+
+	public int getRedisport() {
+		return redisport;
+	}
+
+	public void setRedisport(int redisport) {
+		this.redisport = redisport;
 	}
 
 	@XmlRootElement(name = "entry")

@@ -15,5 +15,10 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/netty-pipe/lib/netty-all-4.1.9.Final-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/jedis-2.9.0.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/project-numa-2/lib/jedis-2.9.0-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

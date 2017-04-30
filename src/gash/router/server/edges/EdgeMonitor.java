@@ -33,6 +33,7 @@ import pipe.work.Work.AddEdge;
 import routing.Pipe.CommandMessage;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
@@ -75,7 +76,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 			Jedis globalRedis = new Jedis(state.getConf().getRedishost(), state.getConf().getRedisport());
 			globalRedis.select(0);
-			globalRedis.set("3", state.getConf().getHostAddress() + ":" + state.getConf().getCommandPort());
+			globalRedis.set("30", state.getConf().getHostAddress() + ":" + state.getConf().getCommandPort());
 			System.out.println("---Redis updated---");
 			globalRedis.close();
 		} catch (Exception e) {
@@ -88,7 +89,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		try {
 
 			Jedis globalRedis = new Jedis(state.getConf().getRedishost(), state.getConf().getRedisport());
-			String url = globalRedis.get("4");
+			String url = globalRedis.get("40");
 			String host = url.split(":")[0];
 			int port = Integer.parseInt(url.split(":")[1]);
 			globalRedis.close();
@@ -100,9 +101,10 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		}
 	}
 
-	public void addClientEdge(int hostId, ChannelHandlerContext ctx) {
+	public void addClientEdge(int hostId, Channel ctx) {
 		clientEdge = new EdgeInfo(hostId, " ", 2048);
-		clientEdge.setChannel(ctx.channel());
+		clientEdge.setChannel(ctx);
+		System.out.println("Got the client edge");
 	}
 
 	public EdgeInfo getClientEdge() {

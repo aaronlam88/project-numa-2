@@ -143,14 +143,14 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 			System.out.println("Ping from " + msg.getHeader().getNodeId());
 			System.out.println(msg);
 		}
-		msg = rebuildMessage(msg);
 
 		// System.out.println(msg.toString());
-		if (msg.getHeader().getNodeId() == serverState.client_id
-				&& msg.getHeader().getDestination() != serverState.getConf().getNodeId()) {
+		if (msg.getHeader().getNodeId() == serverState.client_id) {
 			// client node id
-			serverState.getEmon().addClientEdge(msg.getHeader().getNodeId(), ctx);
-		} else if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
+			serverState.getEmon().addClientEdge(msg.getHeader().getNodeId(), ctx.channel());
+		} 
+		
+		if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
 				CommandMessageEvent event = ringBuffer.get(sequence);
@@ -159,6 +159,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 				ringBuffer.publish(sequence);
 			}
 		} else {
+			msg = rebuildMessage(msg);
 			serverState.cmforward.addLast(msg);
 		}
 	}

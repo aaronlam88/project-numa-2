@@ -64,7 +64,7 @@ class NumaClient:
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
-        cm.header.time = long(time.time())
+        cm.header.time = long(round(time.time() * 1000))
         cm.header.max_hops = NODE_ID
         cm.header.destination = self.target
         cm.request.requestType = REQUESTWRITEFILE
@@ -81,7 +81,7 @@ class NumaClient:
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
-        cm.header.time = long(time.time())
+        cm.header.time = long(round(time.time() * 1000))
         cm.header.max_hops = NODE_ID
         cm.header.destination = self.target
         cm.request.requestType = REQUESTREADFILE
@@ -108,7 +108,7 @@ class NumaClient:
         cm = CommandMessage()
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
-        cm.header.time = long(time.time()) * 1000000
+        cm.header.time = long(round(time.time() * 1000))
         cm.header.max_hops = NODE_ID
         cm.header.destination = self.target
         cm.ping = True

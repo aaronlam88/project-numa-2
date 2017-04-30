@@ -230,16 +230,16 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 			} else if (msg.hasBeatReply()) {
 
-				System.out.println(msg.toString());
+				//System.out.println(msg.toString());
 
-				System.out.println(
-						"recieved beat response;inside hasReply(); sender node id: " + msg.getHeader().getNodeId());
+//				System.out.println(
+//						"recieved beat response;inside hasReply(); sender node id: " + msg.getHeader().getNodeId());
 
 				if (state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())) {
 					// do nothing
 					//System.out.println("Message from this node already considered; doing nothing to process");
 				} else {
-					System.out.println("heartbeat reply received; addding node to disocverednode list");
+//					System.out.println("heartbeat reply received; addding node to disocverednode list");
 					state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
 
 					int gtnd = state.getStatus().getTotalNodesDiscovered();
@@ -256,9 +256,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				RoutingConf rc = new RoutingConf();
 				rc.addEntry(re);
 
-				System.out.println("new entry added to the prevous node of newly added node");
-				System.out.println("message to add sent by: " + msg.getHeader().getNodeId());
-				System.out.println("Edge added to: " + state.getConf().getNodeId());
+//				System.out.println("new entry added to the prevous node of newly added node");
+//				System.out.println("message to add sent by: " + msg.getHeader().getNodeId());
+//				System.out.println("Edge added to: " + state.getConf().getNodeId());
 			} else if (msg.hasPing()) {
 				@SuppressWarnings("unused")
 				// logger.info("ping from " + msg.getHeader().getNodeId());
@@ -298,7 +298,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				if (receivedTerm >= thisTerm && receivedTerm >= thisLogTerm) {
 					if (receivedLogIndex >= thisLogIndex) {
 
-						System.out.println("conditions in vote request is approvable by this server");
+//						System.out.println("conditions in vote request is approvable by this server");
 
 						Header.Builder hb = Header.newBuilder();
 						hb.setNodeId(state.getConf().getNodeId());
@@ -317,7 +317,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						// start timeout after voting
 						if (!state.getStatus().isIsVotedFor() && !state.getStatus().getLeader()) {
 
-							System.out.println("sending the message back to requesting node");
+//							System.out.println("sending the message back to requesting node");
 							state.getStatus().setFollower(true);
 							state.getStatus().setNextIndex(state.getStatus().getNextIndex() + 1);
 							state.getStatus().setHeartbeatTimeout(true);

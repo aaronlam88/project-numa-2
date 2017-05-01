@@ -29,7 +29,7 @@ class NumaClient:
         self.port = port
         self.target = targetNode
         self.session_request = 0
-        self.h = "192.168.1.30"
+        self.h = "localhost"
         self.p = 4168
 
     def createSession(self):

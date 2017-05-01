@@ -139,10 +139,10 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		if (shouldDiscard(msg)) {
 			return;
 		}
-		if (msg.hasPing()) {
-			System.out.println("Ping from " + msg.getHeader().getNodeId());
-			System.out.println(msg);
-		}
+		// if (msg.hasPing()) {
+		// System.out.println("Ping from " + msg.getHeader().getNodeId());
+		System.out.println(msg);
+		// }
 
 		// System.out.println(msg.toString());
 		if (msg.getHeader().getNodeId() == serverState.client_id) {
@@ -303,7 +303,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					fout = new FileOutputStream(file);
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
 					System.out.println("File written");
-					if (serverState.isLeader() || true) {
+					if (serverState.getConf().getNodeId() == 31) {
 						System.out.println("Yes leader");
 						// build <filename, LocationList>
 						String filename = req.getRwb().getFilename();
@@ -315,7 +315,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 
 						ChunkLocation.Builder clb = ChunkLocation.newBuilder();
 						clb.setChunkId(chunkId);
-						clb.setNode(clb.getNodeCount(), nb.build());
+						clb.addNode(nb.build());
+//						clb.setNode(0, nb.build());
 
 						LocationList.Builder lb;
 						if (ServerState.hashTable.containsKey(filename)) {
@@ -343,6 +344,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						WorkMessage.Builder wb = WorkMessage.newBuilder();
 						wb.setAppend(append);
 						wb.setHeader(hb);
+						wb.setSecret(serverState.secret);
 						serverState.wmforward.addLast(wb.build());
 
 					} else {
@@ -434,24 +436,28 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					break;
 
 				case REQUESTWRITEFILE:
-					CommandMessage.Builder replicate = CommandMessage.newBuilder();
-					replicate.mergeFrom(msg);
-					Header.Builder hb = replicate.getHeaderBuilder();
-					hb.setDestination(serverState.getConf().getRouting().get(0).getId());
-					hb.setMaxHops(serverState.maxHops);
+					
+					//replicate to first neighbour
+					if (serverState.getConf().getRouting().size() > 0) {
+						CommandMessage.Builder replicate = CommandMessage.newBuilder();
+						replicate.mergeFrom(msg);
+						Header.Builder hb = replicate.getHeaderBuilder();
 
-					replicate.setHeader(hb);
-					serverState.cmforward.add(replicate.build());
+						hb.setDestination(serverState.getConf().getRouting().get(0).getId());
+						hb.setMaxHops(serverState.maxHops);
 
+						replicate.setHeader(hb);
+						serverState.cmforward.add(replicate.build());
+					}
 					// case REPLICATION:
-					// System.out.println("Write file request");
-					// processWriteRequest(msg, channel);
-					// break;
+					 System.out.println("Write file request");
+					 processWriteRequest(msg, channel);
+					 break;
 				default:
 					break;
 				}
 
-			} else if (msg.hasRequest()) {
+			} else if (msg.hasResponse()) {
 				Response res = msg.getResponse();
 				switch (res.getResponseType()) {
 				case REQUESTWRITEFILE:

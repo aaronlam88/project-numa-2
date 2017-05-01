@@ -32,9 +32,10 @@ public class ServerState {
 	private int currentLeader; // current leader node id
 	private boolean isLeader;
 	public int client_id = 33;
+	public int secret = 123123;
 	public int minRange = 30;
 	public int maxRange = 39;
-	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<>();
+	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<String, LocationList.Builder>();
 	
 	private String dataPath;
 	private int currentTerm;

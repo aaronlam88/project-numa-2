@@ -203,13 +203,12 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 				//System.out.println("recieved beat request");
 
-				/*
-				 * if (mt == 1) { // A request heartbeat message
-				 * WorkState.Builder sb = WorkState.newBuilder();
-				 * 
-				 * sb.setEnqueued(state.getPerformanceStat());
-				 * sb.setProcessed(-1);
-				 */
+				
+				// * if (mt == 1) { // A request heartbeat message
+//				 WorkState.Builder sb = WorkState.newBuilder();
+//				 sb.setEnqueued(state.getPerformanceStat());
+//				 sb.setProcessed(-1);
+				 
 
 				BeatResponse.Builder bb = BeatResponse.newBuilder();
 				// bb.setState(sb);
@@ -226,7 +225,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				wb.setBeatReply(bb);
 				wb.setSecret(121316552);
 
-				channel.writeAndFlush(wb.build()); //TODO
+				state.wmforward.addLast(wb.build());
+//				channel.writeAndFlush(wb.build()); //TODO
 
 			} else if (msg.hasBeatReply()) {
 
@@ -330,8 +330,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							WorkMessage pr = wm.build();
 
 							System.out.println(pr.toString());
-
-							channel.writeAndFlush(pr);
+							state.wmforward.addLast(pr);
+//							channel.writeAndFlush(pr);
 
 						}
 
@@ -548,7 +548,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						}
 
-						channel.writeAndFlush(wm.build());
+//						channel.writeAndFlush(wm.build());
+						state.wmforward.addLast(wm.build());
 					}
 				}
 
@@ -623,6 +624,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				}
 
 				// write log file back to sender
+//				state.wmforward.addLast(logmsg);
 				channel.writeAndFlush(logmsg);
 			} else if (msg.hasRequestAppend() && state.isLeader()) {
 				// FOLLOWER want to append, ONLY LEADER should read this message

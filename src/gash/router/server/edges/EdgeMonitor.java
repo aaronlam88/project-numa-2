@@ -90,13 +90,13 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		try {
 
 			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
-			String url = globalRedis.get("4");
+			String url = globalRedis.get("6");
 			System.out.println(url);
 			String host = url.split(":")[0];
 			int port = Integer.parseInt(url.split(":")[1]);
 			globalRedis.close();
 			globalNeighbour.clear();
-			globalNeighbour.addNode(4, host, port);
+			globalNeighbour.addNode(6, host, port);
 
 		} catch (Exception e) {
 			System.out.println("---Problem with redis while fetching neighbour---");
@@ -397,7 +397,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 			CommandMessage msg = state.cmforward.poll();
 
 			if (msg != null) {
-				if (msg.getHeader().hasDestination() || msg.getHeader().getDestination() == state.client_id) {
+				if (msg.getHeader().getDestination() == state.client_id) {
 					state.getEmon().sendClient(msg);
 				} else if (msg.getHeader().getDestination() >= state.minRange
 						&& msg.getHeader().getDestination() <= state.maxRange) {

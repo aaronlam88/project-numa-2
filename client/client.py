@@ -67,7 +67,7 @@ class NumaClient:
         cm.header.message_id = self.session_request
         cm.header.time = long(round(time.time() * 1000))
         cm.header.max_hops = HOPS
-        cm.header.destination = self.target
+#         cm.header.destination = self.target
         cm.request.requestType = REQUESTWRITEFILE
         cm.request.rwb.filename = fileName
         cm.request.rwb.chunk.chunk_id = index

@@ -42,6 +42,7 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * The message handler processes json messages that are delimited by a 'newline'
@@ -82,27 +83,19 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		if (maxHop == 0) {
 			return true;
 		}
-		// if message is older than 1 minutes (60000ms), discard
-		// if ((System.currentTimeMillis() - time) > 60000) {
-		// System.out.println("Time");
-		// System.out.println(System.currentTimeMillis());
-		// // discard this message
-		// return true;
-		// }
-
-		// if I send this msg to myself, discard
-		// avoid echo msg
 		if (src == serverState.getConf().getNodeId()) {
 			System.out.println("Message has come around");
 			return true;
 		}
 
 		// the above cases should cover all the problems
+
 		return false;
 	}
 
 	/**
 	 * rebuild msg so it can be forward to other node, namely --maxHop
+	 * 
 	 * 
 	 * @param msg
 	 * @return WorkMessage with new maxHop = old maxHop - 1
@@ -141,28 +134,16 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		}
 		// if (msg.hasPing()) {
 		// System.out.println("Ping from " + msg.getHeader().getNodeId());
-		System.out.println(msg);
+		//System.out.println(msg);
 		// }
-
+		PrintUtil.printCommand(msg);
 		// System.out.println(msg.toString());
 		if (msg.getHeader().getNodeId() == serverState.client_id) {
 			// client node id
 			serverState.getEmon().addClientEdge(msg.getHeader().getNodeId(), ctx.channel());
 		}
 
-		if (!msg.getHeader().hasDestination()) { // because doesnt use
-													// destination while sending
-													// global write
-			long sequence = ringBuffer.next(); // Grab the next sequence
-			try {
-				CommandMessageEvent event = ringBuffer.get(sequence);
-				event.set(msg, ctx.channel()); // Fill with data
-			} finally {
-				ringBuffer.publish(sequence);
-			}
-			msg = rebuildMessage(msg);
-			serverState.cmforward.addLast(msg);
-		} else if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()
+		if (!msg.getHeader().hasDestination() || msg.getHeader().getDestination() == serverState.getConf().getNodeId()
 				|| msg.getHeader().getDestination() == 3) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
@@ -257,11 +238,6 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					fin = null;
 				}
 			} else {
-				// send file and chunk locations from log in
-				// response
-				// send failure file not found
-
-				// read locations form hashtable and send to client
 				System.out.println("Collecting file info");
 				LocationList.Builder locationList = ServerState.hashTable.get(req.getRrb().getFilename());
 
@@ -295,89 +271,108 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 				// update
 				FileOutputStream fout = null;
 				File file = null;
+				boolean fileexits = false;
 				try {
-					String chunkName = new String(
-							req.getRwb().getFilename() + "." + req.getRwb().getChunk().getChunkId());
-					file = new File(Paths.get(serverState.getDbPath(), chunkName).toString());
-					file.createNewFile();
-					fout = new FileOutputStream(file);
-					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
-					System.out.println("File written");
-					if (serverState.getConf().getNodeId() == 31) {
-						System.out.println("Yes leader");
-						// build <filename, LocationList>
-						String filename = req.getRwb().getFilename();
-						int chunkId = req.getRwb().getChunk().getChunkId();
-						Node.Builder nb = Node.newBuilder();
-						nb.setHost(serverState.getConf().getHostAddress());
-						nb.setPort(serverState.getConf().getCommandPort());
-						nb.setNodeId(serverState.getConf().getNodeId());
-
-						ChunkLocation.Builder clb = ChunkLocation.newBuilder();
-						clb.setChunkId(chunkId);
-						clb.addNode(nb.build());
-//						clb.setNode(0, nb.build());
-
-						LocationList.Builder lb;
-						if (ServerState.hashTable.containsKey(filename)) {
-							lb = ServerState.hashTable.get(filename);
-						} else {
-							lb = LocationList.newBuilder();
+					String filename = req.getRwb().getFilename();
+					LocationList.Builder lb1;
+					if (ServerState.hashTable.containsKey(filename)) {
+						lb1 = ServerState.hashTable.get(filename);
+						List<ChunkLocation> chl = lb1.getLocationListList();
+						for (ChunkLocation item : chl) {
+							if (item.getChunkId() == req.getRwb().getChunk().getChunkId()) {
+								fileexits = true;
+								System.out.println("File exits");
+							}
 						}
-
-						lb.addLocationList(clb.build());
-
-						ServerState.hashTable.put(filename, lb);
-
-						// construct a work message to send out to Followers
-						Header.Builder hb = Header.newBuilder();
-						hb.setDestination(-1);
-						hb.setNodeId(serverState.getConf().getNodeId());
-						hb.setMaxHops(-1);
-						hb.setTime(System.currentTimeMillis());
-
-						AppendLogItem.Builder append = AppendLogItem.newBuilder();
-						append.setFilename(filename);
-						append.setChunkId(chunkId);
-						append.setNode(nb.build());
-
-						WorkMessage.Builder wb = WorkMessage.newBuilder();
-						wb.setAppend(append);
-						wb.setHeader(hb);
-						wb.setSecret(serverState.secret);
-						serverState.wmforward.addLast(wb.build());
-
-					} else {
-						System.out.println("No leader");
-						FileChunkObject nod = new FileChunkObject();
-						nod.setNode_id(serverState.getConf().getNodeId());
-						nod.setHostAddress(serverState.getConf().getHostAddress());
-						nod.setPort_id(serverState.getConf().getCommandPort());
-						nod.setChunk_id(req.getRwb().getChunk().getChunkId());
-						nod.setFileName(req.getRwb().getFilename());
-
-						serverState.incoming.addLast(nod);
 					}
-					System.out.println("File writting " + chunkName);
+					if (!fileexits) {
+						System.out.println("File not exits");
+						String chunkName = new String(
+								req.getRwb().getFilename() + "." + req.getRwb().getChunk().getChunkId());
+						file = new File(Paths.get(serverState.getDbPath(), chunkName).toString());
+						file.createNewFile();
+						fout = new FileOutputStream(file);
+						fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
+						System.out.println("File written");
+						if (serverState.getConf().getNodeId() == 31) {
+							System.out.println("Yes leader");
+							// build <filename, LocationList> String filename =
+							// req.getRwb().getFilename();
+							int chunkId = req.getRwb().getChunk().getChunkId();
+							Node.Builder nb = Node.newBuilder();
+							nb.setHost(serverState.getConf().getHostAddress());
+							nb.setPort(serverState.getConf().getCommandPort());
+							nb.setNodeId(serverState.getConf().getNodeId());
 
-					if (msg.getHeader().hasDestination()) {
-						// Reply success to client
-						Header.Builder hd = Header.newBuilder();
-						hd.setDestination(msg.getHeader().getNodeId());
-						hd.setNodeId(serverState.getConf().getNodeId());
-						hd.setTime(System.currentTimeMillis());
-						hd.setMaxHops(-1);
+							ChunkLocation.Builder clb = ChunkLocation.newBuilder();
+							clb.setChunkId(chunkId);
+							clb.addNode(nb.build());
+							// clb.setNode(0, nb.build());
 
-						Response.Builder rsp = Response.newBuilder();
-						rsp.setFilename(req.getRrb().getFilename());
-						rsp.setStatus(Response.Status.SUCCESS);
-						rsp.setResponseType(TaskType.RESPONSEWRITEFILE);
+							LocationList.Builder lb;
+							if (ServerState.hashTable.containsKey(filename)) {
+								lb = ServerState.hashTable.get(filename);
+							} else {
+								lb = LocationList.newBuilder();
+							}
 
-						CommandMessage.Builder cm = CommandMessage.newBuilder();
-						cm.setHeader(hd);
-						cm.setResponse(rsp);
+							lb.addLocationList(clb.build());
 
-						serverState.cmforward.addLast(cm.build());
+							ServerState.hashTable.put(filename, lb);
+
+							// construct a work message to send out to Followers
+							Header.Builder hb = Header.newBuilder();
+							hb.setDestination(-1);
+							hb.setNodeId(serverState.getConf().getNodeId());
+							hb.setMaxHops(-1);
+							hb.setTime(System.currentTimeMillis());
+
+							AppendLogItem.Builder append = AppendLogItem.newBuilder();
+							append.setFilename(filename);
+							append.setChunkId(chunkId);
+							append.setNode(nb.build());
+
+							WorkMessage.Builder wb = WorkMessage.newBuilder();
+							wb.setAppend(append);
+							wb.setHeader(hb);
+							wb.setSecret(serverState.secret);
+							serverState.wmforward.addLast(wb.build());
+
+						} else {
+							System.out.println("No leader");
+							FileChunkObject nod = new FileChunkObject();
+							nod.setNode_id(serverState.getConf().getNodeId());
+							nod.setHostAddress(serverState.getConf().getHostAddress());
+							nod.setPort_id(serverState.getConf().getCommandPort());
+							nod.setChunk_id(req.getRwb().getChunk().getChunkId());
+							nod.setFileName(req.getRwb().getFilename());
+
+							serverState.incoming.addLast(nod);
+						}
+						System.out.println("File writting " + chunkName);
+
+						if (msg.getHeader().hasDestination()) {
+							// Reply success to client
+							Header.Builder hd = Header.newBuilder();
+							hd.setDestination(msg.getHeader().getNodeId());
+							hd.setNodeId(serverState.getConf().getNodeId());
+							hd.setTime(System.currentTimeMillis());
+							hd.setMaxHops(-1);
+
+							Response.Builder rsp = Response.newBuilder();
+							rsp.setFilename(req.getRrb().getFilename());
+							rsp.setStatus(Response.Status.SUCCESS);
+							rsp.setResponseType(TaskType.RESPONSEWRITEFILE);
+
+							CommandMessage.Builder cm = CommandMessage.newBuilder();
+							cm.setHeader(hd);
+							cm.setResponse(rsp);
+
+							serverState.cmforward.addLast(cm.build());
+						} else {
+							// msg = rebuildMessage(msg);
+							serverState.cmforward.addLast(msg);
+						}
 					}
 					// channel.writeAndFlush(cm.build());
 
@@ -436,8 +431,13 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					break;
 
 				case REQUESTWRITEFILE:
-					
-					//replicate to first neighbour
+
+					// replicate to first neighbour
+
+					// case REPLICATION:
+					System.out.println("Write file request");
+
+					processWriteRequest(msg, channel);
 					if (serverState.getConf().getRouting().size() > 0) {
 						CommandMessage.Builder replicate = CommandMessage.newBuilder();
 						replicate.mergeFrom(msg);
@@ -449,10 +449,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						replicate.setHeader(hb);
 						serverState.cmforward.add(replicate.build());
 					}
-					// case REPLICATION:
-					 System.out.println("Write file request");
-					 processWriteRequest(msg, channel);
-					 break;
+					break;
 				default:
 					break;
 				}

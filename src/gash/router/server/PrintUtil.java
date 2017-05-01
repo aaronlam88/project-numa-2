@@ -17,6 +17,7 @@ package gash.router.server;
 
 import pipe.common.Common.Failure;
 import pipe.common.Common.Header;
+import pipe.common.Common.Request;
 import pipe.work.Work.WorkMessage;
 import routing.Pipe.CommandMessage;
 
@@ -43,17 +44,30 @@ public class PrintUtil {
 			System.out.println(PrintUtil.gap + "Code:    " + msg.getErr().getId());
 			System.out.println(PrintUtil.gap + "Ref ID:  " + msg.getErr().getRefId());
 			System.out.println(PrintUtil.gap + "Message: " + msg.getErr().getMessage());
-		} else if (msg.hasPing())
+		} else if (msg.hasPing()) {
 			System.out.println("Ping");
-//		else if (msg.hasMessage()) {
-//			System.out.println("Message");
-//			System.out.println(PrintUtil.gap + "Msg:  " + msg.getMessage());
-//		}
-		// else if (msg.hasResp()) {
-		// System.out.println("Message");
-		// }
-		else
-			System.out.println("Unknown");
+			System.out.println(msg);
+		} else if (msg.hasRequest()) {
+			Request req = msg.getRequest();
+			switch (req.getRequestType()) {
+			case REQUESTREADFILE:
+				System.out.println("Read file request");
+				System.out.println("From Node: " + msg.getHeader().getNodeId());
+				System.out.println("File name: " + req.getRrb().getFilename());
+				break;
+
+			case REQUESTWRITEFILE:
+				System.out.println("Write file request");
+				System.out.println("From Node: " + msg.getHeader().getNodeId());
+				System.out.println("File name: " + req.getRwb().getFilename());
+				break;
+			// System.out.println("Unknown");
+			default:
+				break;
+			}
+		} else {
+			System.out.print(msg);
+		}
 	}
 
 	public static void printWork(WorkMessage msg) {

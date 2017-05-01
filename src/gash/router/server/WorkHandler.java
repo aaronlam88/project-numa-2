@@ -83,6 +83,101 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		}
 	}
 
+	private void startStealing(WorkMessage msg) {
+		int node_id = msg.getHeader().getNodeId();
+		if (state.getConf().getRouting() != null && state.getPerformanceStat() < 50) {
+			for (RoutingEntry e : state.getConf().getRouting()) {
+				if (e.getId() == node_id) {
+					TaskStealer ts = new TaskStealer(e, 3, state);
+					Thread t = new Thread(ts);
+					t.start();
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * check to see if we should discard WorkMessage msg
+	 * 
+	 * @param msg
+	 * @return true: we don't need to care about this msg, discard it (return)
+	 *         false: we have to read this msg or forward it.
+	 */
+	protected boolean shouldDiscard(WorkMessage msg) {
+		Header header = msg.getHeader();
+		int maxHop = header.getMaxHops();
+		int src = header.getNodeId();
+
+		if (maxHop == 0) {
+			return true;
+		}
+
+		if (src == state.getConf().getNodeId()) {
+			System.out.println("Message has come around");
+			return true;
+		}
+		// the above cases should cover all the problems
+		return false;
+	}
+
+	/**
+	 * rebuild msg so it can be forward to other node, namely --maxHop
+	 * 
+	 * @param msg
+	 * @return WorkMessage with new maxHop = old maxHop - 1
+	 */
+	protected WorkMessage rebuildMessage(WorkMessage msg) {
+		Header header = msg.getHeader();
+		int maxHop = header.getMaxHops();
+		--maxHop;
+		// build new header from old header, only update maxHop
+		Header.Builder hb = Header.newBuilder();
+		hb.mergeFrom(header);
+		hb.setMaxHops(maxHop);
+
+		// build new msg from old msg, only update Header
+		WorkMessage.Builder wb = WorkMessage.newBuilder();
+		wb.mergeFrom(msg);
+		wb.setHeader(hb.build());
+		return wb.build();
+	}
+
+	/**
+	 * a message was received from the server. Here we dispatch the message to
+	 * the client's thread pool to minimize the time it takes to process other
+	 * messages.
+	 * 
+	 * @param ctx
+	 *            The channel the message was received from
+	 * @param msg
+	 *            The message
+	 */
+	@Override
+	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
+
+		if (shouldDiscard(msg)) {
+			return;
+		}
+		if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
+			handleMessage(msg, ctx.channel());
+		} else if (msg.getHeader().getDestination() == -1) {
+			handleMessage(msg, ctx.channel());
+			msg = rebuildMessage(msg);
+			state.wmforward.addLast(msg);
+		} else {
+			msg = rebuildMessage(msg);
+			state.wmforward.addLast(msg);
+		}
+
+	}
+
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+		logger.error("Unexpected exception from downstream.", cause);
+		ctx.close();
+	}
+
 	/**
 	 * override this method to provide processing behavior. T
 	 * 
@@ -99,15 +194,15 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		// TODO How can you implement this without if-else statements?
 
 		try {
-			System.out.println("entered the try");
-			//System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
+			//System.out.println("entered the try");
+			// System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
 
 			 if (msg.hasBeat()) {
 				//@SuppressWarnings("unused")
 				//Heartbeat gb = msg.getBeat();
 
-				//System.out.println(msg.toString());
-				System.out.println("heartbeat from " + msg.getHeader().getNodeId());
+				// System.out.println(msg.toString());
+				System.out.println("Heartbeat from " + msg.getHeader().getNodeId());
 
 				int cpuUsage = msg.getBeat().getState().getEnqueued();
 				if (cpuUsage > state.CPUthreshhold) {
@@ -116,17 +211,14 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 				// retrieve requestType and work accordingly
 				// if request send response; if ersponse update the count
-
 					System.out.println("recieved beat request from: " + msg.getHeader().getNodeId());
 					//System.out.println(msg.toString());
 
-
-				/*if (mt == 1) {
-					// A request heartbeat message
-					WorkState.Builder sb = WorkState.newBuilder();
-
-					sb.setEnqueued(state.getPerformanceStat());
-					sb.setProcessed(-1);*/
+				
+				// * if (mt == 1) { // A request heartbeat message
+//				 WorkState.Builder sb = WorkState.newBuilder();
+//				 sb.setEnqueued(state.getPerformanceStat());
+//				 sb.setProcessed(-1);
 
 					BeatResponse.Builder bb = BeatResponse.newBuilder();
 					//bb.setState(sb);
@@ -160,15 +252,15 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 					System.out.println(msg.toString());
 
-					System.out.println("recieved beat response;inside hasReply(); sender node id: " + msg.getHeader().getNodeId());
+				System.out.println(
+						"recieved beat response;inside hasReply(); sender node id: " + msg.getHeader().getNodeId());
 
-
-					if (state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())) {
-						// do nothing
-						System.out.println("Message from this node already considered; doing nothing to process");
-					} else {
-						System.out.println("heartbeat reply received; addding node to disocverednode list");
-						state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
+				if (state.getStatus().getNodesThatRepliedBeats().contains(msg.getHeader().getNodeId())) {
+					// do nothing
+					System.out.println("Message from this node already considered; doing nothing to process");
+				} else {
+					System.out.println("heartbeat reply received; addding node to disocverednode list");
+					state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
 
 						int gtnd = state.getStatus().getTotalNodesDiscovered();
 						System.out.println("nodes discovered before adding one: " + gtnd);
@@ -177,6 +269,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					}
 				}
 			}else if (msg.hasAddEdge()) {
+
 				int id = msg.getAddEdge().getNodeToAdd();
 				String host = msg.getAddEdge().getHost();
 				int port = msg.getAddEdge().getPort();
@@ -186,9 +279,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				RoutingConf rc = new RoutingConf();
 				rc.addEntry(re);
 
-				System.out.println("new entry added to the prevous node of newly added node");
-				System.out.println("message to add sent by: " + msg.getHeader().getNodeId());
-				System.out.println("Edge added to: " + state.getConf().getNodeId());
+//				System.out.println("new entry added to the prevous node of newly added node");
+//				System.out.println("message to add sent by: " + msg.getHeader().getNodeId());
+//				System.out.println("Edge added to: " + state.getConf().getNodeId());
 			} else if (msg.hasPing()) {
 				@SuppressWarnings("unused")
 				// logger.info("ping from " + msg.getHeader().getNodeId());
@@ -228,6 +321,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				if (receivedTerm > thisTerm && recievedLogTerm >= thisLogTerm) {
 					if (receivedLogIndex>=thisLogIndex) {
 
+
 						System.out.println("conditions in vote request is approvable by this server");
 
 						Header.Builder hb = Header.newBuilder();
@@ -249,7 +343,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						// start timeout after voting
 						if (!state.getStatus().isIsVotedFor() && !state.getStatus().getLeader()) {
 
-							System.out.println("sending the message back to requesting node");
+//							System.out.println("sending the message back to requesting node");
 							state.getStatus().setFollower(true);
 							state.getStatus().setNextIndex(state.getStatus().getNextIndex() + 1);
 							state.getStatus().setHeartbeatTimeout(true);
@@ -391,8 +485,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						try {
 
-
 							PrintWriter pw =new PrintWriter(new File(state.getDbPath()+"/appendEntryLog_" + state.getConf().getNodeId() +".txt"));
+
 
 							StringBuilder sb = new StringBuilder();
 
@@ -553,6 +647,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				}
 
 				// write log file back to sender
+//				state.wmforward.addLast(logmsg);
 				channel.writeAndFlush(logmsg);
 			} else if (msg.hasRequestAppend() && state.isLeader()) {
 				// FOLLOWER want to append, ONLY LEADER should read this message
@@ -564,7 +659,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// the chunk_id
 
 				if (locationList == null) {
-					
+
 					LocationList.Builder lb = LocationList.newBuilder();
 					ChunkLocation.Builder cb = ChunkLocation.newBuilder();
 					cb.addNode(request.getNode());
@@ -573,7 +668,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					return;
 				} else {
 					for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
-						if (chunkLoc.getChunkid() == request.getChunkId()) {
+						if (chunkLoc.getChunkId() == request.getChunkId()) {
 							chunkLoc.getNodeList().add(request.getNode());
 						}
 					}
@@ -642,7 +737,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				}
 
 				for (ChunkLocation chunkLoc : locationList.getLocationListList()) {
-					if (chunkLoc.getChunkid() == request.getChunkId()) {
+					if (chunkLoc.getChunkId() == request.getChunkId()) {
 						chunkLoc.getNodeList().add(request.getNode());
 					}
 				}
@@ -672,82 +767,6 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 	}
 
-	private void startStealing(WorkMessage msg) {
-		int node_id = msg.getHeader().getNodeId();
-		if (state.getConf().getRouting() != null && state.getPerformanceStat() < 50) {
-			for (RoutingEntry e : state.getConf().getRouting()) {
-				if (e.getId() == node_id) {
-					TaskStealer ts = new TaskStealer(e, 3, state);
-					Thread t = new Thread(ts);
-					t.start();
-				}
-			}
-		}
-
-	}
-
-	/**
-	 * check to see if we should discard WorkMessage msg
-	 * 
-	 * @param msg
-	 * @return true: we don't need to care about this msg, discard it (return)
-	 *         false: we have to read this msg or forward it.
-	 */
-	protected boolean shouldDiscard(WorkMessage msg) {
-		Header header = msg.getHeader();
-		int maxHop = header.getMaxHops();
-		int src = header.getNodeId();
-		long time = header.getTime();
-		long secret = msg.getSecret();
-
-		// WE DON'T HAVE GLOBLE Secret, if you set this, we can't talk to other
-		// team
-		// // if the secret not the same as network secret, discard
-		// if(secret != ServerState.getSecret()) {
-		// return true;
-		// }
-		// if max hop == 0, discard
-		if (maxHop == 0) {
-			// discard this message
-			return true;
-		}
-		// if message is older than 1 minutes (60000ms), discard
-		//if ((System.currentTimeMillis() - time) > 60000) {
-			// discard this message
-		//	return true;
-		//}
-
-		// if I send this msg to myself, discard
-		// avoid echo msg
-		if (src == state.getConf().getNodeId()) {
-			System.out.println("Message has come around");
-			return true;
-		}
-		// the above cases should cover all the problems
-		return false;
-	}
-
-	/**
-	 * rebuild msg so it can be forward to other node, namely --maxHop
-	 * 
-	 * @param msg
-	 * @return WorkMessage with new maxHop = old maxHop - 1
-	 */
-	protected WorkMessage rebuildMessage(WorkMessage msg) {
-		Header header = msg.getHeader();
-		int maxHop = header.getMaxHops();
-		--maxHop;
-		// build new header from old header, only update maxHop
-		Header.Builder hb = Header.newBuilder();
-		hb.mergeFrom(header);
-		hb.setMaxHops(maxHop);
-
-		// build new msg from old msg, only update Header
-		WorkMessage.Builder wb = WorkMessage.newBuilder();
-		wb.mergeFrom(msg);
-		wb.setHeader(hb.build());
-		return wb.build();
-	}
 
 	protected void forwardMessage(WorkMessage msg){
 		EdgeList outboundEdges = new EdgeList();
@@ -792,38 +811,6 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				}
 			}
 	}
-	/**
-	 * a message was received from the server. Here we dispatch the message to
-	 * the client's thread pool to minimize the time it takes to process other
-	 * messages.
-	 * 
-	 * @param ctx
-	 *            The channel the message was received from
-	 * @param msg
-	 *            The message
-	 */
-	@Override
-	protected void channelRead0(ChannelHandlerContext ctx, WorkMessage msg) throws Exception {
 
-		if (shouldDiscard(msg)) {
-			return;
-		} else if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
-			handleMessage(msg, ctx.channel());
-		} else if (msg.getHeader().getDestination() == -1) {
-			handleMessage(msg, ctx.channel());
-			msg = rebuildMessage(msg);
-			forwardMessage(msg); //option is not useful
-			//state.wmforward.addLast(msg);
-			//ctx.flush();
-		} else {
-			msg = rebuildMessage(msg);
-			state.wmforward.addLast(msg);
-		}
-	}
 
-	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-		logger.error("Unexpected exception from downstream.", cause);
-		ctx.close();
-	}
 }

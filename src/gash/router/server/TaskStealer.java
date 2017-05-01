@@ -41,12 +41,12 @@ public class TaskStealer implements Runnable {
 						Request.Builder req = Request.newBuilder();
 						ReadBody.Builder rrb = ReadBody.newBuilder();
 						rrb.setFilename(entry.getKey());
-						rrb.setChunkId(entry.getValue().getLocationList(i).getChunkid());
+						rrb.setChunkId(entry.getValue().getLocationList(i).getChunkId());
 						req.setRequestType(TaskType.REQUESTREADFILE);
 						req.setRrb(rrb);
 						CommandMessage.Builder cm = CommandMessage.newBuilder();
 						cm.setHeader(hd);
-						cm.setReq(req);
+						cm.setRequest(req);
 						state.cmforward.add(cm.build());
 						quantity -= 1;
 					}

@@ -30,10 +30,12 @@ import pipe.common.Common.RequestAppendItem;
 import pipe.work.Work.Heartbeat;
 import pipe.work.Work.WorkMessage;
 import pipe.work.Work.WorkState;
+import redis.clients.jedis.Jedis;
 import pipe.work.Work.AddEdge;
 import routing.Pipe.CommandMessage;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOption;
@@ -49,8 +51,10 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	private EdgeList inboundEdges;
 	private EdgeInfo clientEdge;
 	private EdgeList globalNeighbour;
+
 	
 	private long dt = 2000;
+
 	private ServerState state;
 
 	private EventLoopGroup group;
@@ -62,7 +66,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		this.outboundEdges = new EdgeList();
 		this.commandEdges = new EdgeList();
 		this.inboundEdges = new EdgeList();
-		this.globalNeighbour = new EdgeList();	
+		this.globalNeighbour = new EdgeList();
 		this.state = state;
 		this.state.setEmon(this);
 
@@ -73,6 +77,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	}
 	
 		public void setGlobalNeighbours() {
+
 		try {
 
 			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
@@ -117,7 +122,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	public void sendClient(CommandMessage msg) {
 		clientEdge.getChannel().writeAndFlush(msg);
 	}
-	
+
 	public void updateEdges() {
 		outboundEdges.clear();
 		if (state.getConf().getRouting() != null) {
@@ -148,15 +153,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setTime(System.currentTimeMillis());
+
 		hb.setMaxHops(10);
 		hb.setDestination(-1);
-
-		/*
-		 * if(state.isLeader()) { hb.setMaxHops(-1);
-		 * hb.setDestination(state.getConf().getNodeId()); } else {
-		 * hb.setMaxHops(state.getConf().getTotalNodes());
-		 * hb.setDestination(ei.getRef()); }
-		 */
 
 		WorkMessage.Builder wb = WorkMessage.newBuilder();
 		wb.setHeader(hb);
@@ -166,17 +165,17 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		return wb.build();
 	}
 
-	private WorkMessage addEntryMessage(){
-		
-		// send previous node a message to add entry to my node to create and maintain a ring
+	private WorkMessage addEntryMessage() {
+
+		// send previous node a message to add entry to my node to create and
+		// maintain a ring
 
 		int toSendNodeId;
 
-		if(state.getConf().getNodeId()==1){
-			toSendNodeId=state.getConf().getTotalNodes();
-		}
-		else{
-			toSendNodeId=state.getConf().getNodeId()-1;
+		if (state.getConf().getNodeId() == 1) {
+			toSendNodeId = state.getConf().getTotalNodes();
+		} else {
+			toSendNodeId = state.getConf().getNodeId() - 1;
 		}
 
 		Header.Builder hb = Header.newBuilder();
@@ -187,7 +186,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 		AddEdge.Builder ae = AddEdge.newBuilder();
 		ae.setNodeToAdd(state.getConf().getNodeId());
-		//ae.setHost(state.getConf().getHostAddress());
+		// ae.setHost(state.getConf().getHostAddress());
 		ae.setHost("localhost");
 		ae.setPort(state.getConf().getWorkPort());
 		ae.setCommand(state.getConf().getCommandPort());
@@ -243,16 +242,12 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
-			
-				System.out.println("retrieving total nodes set as discovered in conf: " + state.getConf().getTotalNodes());
+				// System.out.println(
+				// "retrieving total nodes set as discovered in conf: " +
+				// state.getConf().getTotalNodes());
 				WorkMessage wm = createHB(ei);
 
 				ei.getChannel().writeAndFlush(wm);
-
-				//
-
-				//WorkMessage wme = addEntryMessage();
-				//ei.getChannel().writeAndFlush(wme);
 
 				state.getStatus().setTotalNodesDiscovered(1);
 				state.getStatus().removeAllInList();
@@ -265,7 +260,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 					ei.getChannel().writeAndFlush(wm);
 					logger.info("send heart beat to " + ei.getRef());
 				} catch (Exception e) {
-					logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+					System.out.println("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 				}
 			}
 		}
@@ -336,10 +331,13 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		@Override
 		public void run() {
 			while (state.keepWorking) {
-				/*if (!state.wmforward.isEmpty()) {
-					process_wmforward();
-				}*/
-				process_wmforward();
+				try {
+					if (!state.wmforward.isEmpty()) {
+						process_wmforward();
+					}
+				} catch (Exception e) {
+					System.out.println("Work Message forward failed." + e.getMessage());
+				}
 			}
 		}
 
@@ -348,31 +346,25 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		// }
 
 		private void process_wmforward() {
-			if (!state.wmforward.isEmpty()) {
-				WorkMessage msg = state.wmforward.poll();
+			WorkMessage msg = state.wmforward.poll();
 
-				if (msg != null) {
-					// // Already done by Aron
-					// // respect hop count
-					// WorkMessage.Builder cm = WorkMessage.newBuilder();
-					// cm.mergeFrom(msg);
-					// Header.Builder hb = cm.getHeaderBuilder();
-					// int hops = hb.getMaxHops() - 1;
-					// hb.setMaxHops(hops);
-					// cm.setHeader(hb);
-					// msg = cm.build();
-					// if (hops != 0) {
-					for (EdgeInfo ei : this.outboundEdges.map.values()) {
-						createInboundIfNew(ei.getRef(), ei.getHost(), ei.getPort());
-						if (ei.getChannel() != null && ei.isActive()) {
+			if (msg != null) {
+				for (EdgeInfo ei : this.outboundEdges.map.values()) {
+					// createInboundIfNew(ei.getRef(), ei.getHost(),
+					// ei.getPort());
+					if (ei.getChannel() != null && ei.isActive()) {
+						System.out.println("Sending out");
+						System.out.println(msg);
+						ei.getChannel().writeAndFlush(msg);
+					} else {
+						try {
+							onAdd(ei);
+							System.out.println("Sending out");
+							System.out.println(msg);
 							ei.getChannel().writeAndFlush(msg);
-						} else {
-							try {
-								onAdd(ei);
-								ei.getChannel().writeAndFlush(msg);
-							} catch (Exception e) {
-								logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
-							}
+						} catch (Exception e) {
+							System.out.println(
+									"error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 						}
 					}
 					// }
@@ -388,8 +380,8 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 		private EdgeList outboundEdges;
 		private EdgeList inboundEdges;
-		private ServerState state;
 		private EdgeList global;
+		private ServerState state;
 
 		public Process_CommandForward(EdgeList in, EdgeList out, EdgeList global, ServerState state) {
 			this.outboundEdges = out;
@@ -401,15 +393,15 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		@Override
 		public void run() {
 			while (state.keepWorking) {
-				if (!state.cmforward.isEmpty()) {
-					process_cmforward();
+				try {
+					if (!state.cmforward.isEmpty()) {
+						process_cmforward();
+					}
+				} catch (Exception e) {
+					System.out.println("Command Message forward failed." + e.getMessage());
 				}
 			}
 		}
-
-		// public void createInboundIfNew(int ref, String host, int port) {
-		// inboundEdges.createIfNew(ref, host, port);
-		// }
 
 		private void process_cmforward() {
 			CommandMessage msg = state.cmforward.poll();
@@ -440,6 +432,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 					}
 					for (EdgeInfo ei : this.global.map.values()) {
 						if (ei.getChannel() != null && ei.isActive()) {
+
 							ei.getChannel().writeAndFlush(msg);
 						} else {
 							try {

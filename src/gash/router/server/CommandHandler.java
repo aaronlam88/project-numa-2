@@ -148,9 +148,22 @@ public class CommandHandler extends SimpleChannelInboundHandler<CommandMessage> 
 		if (msg.getHeader().getNodeId() == serverState.client_id) {
 			// client node id
 			serverState.getEmon().addClientEdge(msg.getHeader().getNodeId(), ctx.channel());
-		} 
-		
-		if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()) {
+		}
+
+		if (!msg.getHeader().hasDestination()) { // because doesnt use
+													// destination while sending
+													// global write
+			long sequence = ringBuffer.next(); // Grab the next sequence
+			try {
+				CommandMessageEvent event = ringBuffer.get(sequence);
+				event.set(msg, ctx.channel()); // Fill with data
+			} finally {
+				ringBuffer.publish(sequence);
+			}
+			msg = rebuildMessage(msg);
+			serverState.cmforward.addLast(msg);
+		} else if (msg.getHeader().getDestination() == serverState.getConf().getNodeId()
+				|| msg.getHeader().getDestination() == 3) {
 			long sequence = ringBuffer.next(); // Grab the next sequence
 			try {
 				CommandMessageEvent event = ringBuffer.get(sequence);
@@ -290,8 +303,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					fout = new FileOutputStream(file);
 					fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
 					System.out.println("File written");
-
-					if (serverState.isLeader()) {
+					if (serverState.isLeader() || true) {
 						System.out.println("Yes leader");
 						// build <filename, LocationList>
 						String filename = req.getRwb().getFilename();
@@ -346,24 +358,25 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					}
 					System.out.println("File writting " + chunkName);
 
-					// Reply success to client
-					Header.Builder hd = Header.newBuilder();
-					hd.setDestination(msg.getHeader().getNodeId());
-					hd.setNodeId(serverState.getConf().getNodeId());
-					hd.setTime(System.currentTimeMillis());
-					hd.setMaxHops(-1);
+					if (msg.getHeader().hasDestination()) {
+						// Reply success to client
+						Header.Builder hd = Header.newBuilder();
+						hd.setDestination(msg.getHeader().getNodeId());
+						hd.setNodeId(serverState.getConf().getNodeId());
+						hd.setTime(System.currentTimeMillis());
+						hd.setMaxHops(-1);
 
-					Response.Builder rsp = Response.newBuilder();
-					rsp.setFilename(req.getRrb().getFilename());
-					rsp.setStatus(Response.Status.SUCCESS);
-					rsp.setResponseType(TaskType.RESPONSEWRITEFILE);
+						Response.Builder rsp = Response.newBuilder();
+						rsp.setFilename(req.getRrb().getFilename());
+						rsp.setStatus(Response.Status.SUCCESS);
+						rsp.setResponseType(TaskType.RESPONSEWRITEFILE);
 
-					CommandMessage.Builder cm = CommandMessage.newBuilder();
-					cm.setHeader(hd);
-					cm.setResponse(rsp);
+						CommandMessage.Builder cm = CommandMessage.newBuilder();
+						cm.setHeader(hd);
+						cm.setResponse(rsp);
 
-					serverState.cmforward.addLast(cm.build());
-
+						serverState.cmforward.addLast(cm.build());
+					}
 					// channel.writeAndFlush(cm.build());
 
 				} catch (Exception e) {
@@ -399,10 +412,12 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 			if (msg.hasPing()) {
 
 				Header.Builder hd = Header.newBuilder();
+				// System.out.println("Got ping");
 				hd.setDestination(msg.getHeader().getNodeId());
-				hd.setNodeId(serverState.getConf().getNodeId());
-				hd.setTime(System.currentTimeMillis());
 
+				hd.setNodeId(msg.getHeader().getDestination());
+				hd.setTime(System.currentTimeMillis());
+				hd.setMaxHops(serverState.maxHops);
 				CommandMessage.Builder rb = CommandMessage.newBuilder();
 				rb.setHeader(hd);
 
@@ -423,7 +438,8 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 					replicate.mergeFrom(msg);
 					Header.Builder hb = replicate.getHeaderBuilder();
 					hb.setDestination(serverState.getConf().getRouting().get(0).getId());
-					hb.setMaxHops(1);
+					hb.setMaxHops(serverState.maxHops);
+
 					replicate.setHeader(hb);
 					serverState.cmforward.add(replicate.build());
 

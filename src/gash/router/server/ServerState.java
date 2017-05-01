@@ -28,6 +28,7 @@ public class ServerState {
 	private TaskList tasks;
 	private ServerElectionStatus status;
 	public int CPUthreshhold = 60;
+	public int maxHops = 10;
 	private int currentLeader; // current leader node id
 	private boolean isLeader;
 	public int client_id = 33;

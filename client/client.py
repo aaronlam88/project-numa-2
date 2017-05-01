@@ -14,6 +14,7 @@ from _socket import SHUT_RDWR
 
 CHUNK_SIZE = 1024 * 1024 * 20
 NODE_ID = 33
+HOPS = 10
 MAX_MSG_SIZE = CHUNK_SIZE + 1024
 
 
@@ -65,7 +66,7 @@ class NumaClient:
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
         cm.header.time = long(round(time.time() * 1000))
-        cm.header.max_hops = NODE_ID
+        cm.header.max_hops = HOPS
         cm.header.destination = self.target
         cm.request.requestType = REQUESTWRITEFILE
         cm.request.rwb.filename = fileName
@@ -82,7 +83,7 @@ class NumaClient:
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
         cm.header.time = long(round(time.time() * 1000))
-        cm.header.max_hops = NODE_ID
+        cm.header.max_hops = HOPS
         cm.header.destination = self.target
         cm.request.requestType = REQUESTREADFILE
         cm.request.rrb.filename = fileName
@@ -109,7 +110,7 @@ class NumaClient:
         cm.header.node_id = NODE_ID
         cm.header.message_id = self.session_request
         cm.header.time = long(round(time.time() * 1000))
-        cm.header.max_hops = NODE_ID
+        cm.header.max_hops = HOPS
         cm.header.destination = self.target
         cm.ping = True
         print cm

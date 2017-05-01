@@ -62,6 +62,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		this.outboundEdges = new EdgeList();
 		this.commandEdges = new EdgeList();
 		this.inboundEdges = new EdgeList();
+		this.globalNeighbour = new EdgeList();
 		this.state = state;
 		this.state.setEmon(this);
 
@@ -74,9 +75,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	public void setGlobalNeighbours() {
 		try {
 
-			Jedis globalRedis = new Jedis(state.getConf().getRedishost(), state.getConf().getRedisport());
-			globalRedis.select(0);
-			globalRedis.set("30", state.getConf().getHostAddress() + ":" + state.getConf().getCommandPort());
+			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
+			//globalRedis.select(0);
+			globalRedis.set("3", state.getConf().getHostAddress() + ":" + state.getConf().getCommandPort());
 			System.out.println("---Redis updated---");
 			globalRedis.close();
 		} catch (Exception e) {
@@ -88,8 +89,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	public void FetchGlobalNeighbours() {
 		try {
 
-			Jedis globalRedis = new Jedis(state.getConf().getRedishost(), state.getConf().getRedisport());
-			String url = globalRedis.get("40");
+			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
+			String url = globalRedis.get("4");
+			System.out.println(url);
 			String host = url.split(":")[0];
 			int port = Integer.parseInt(url.split(":")[1]);
 			globalRedis.close();
@@ -380,7 +382,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 			CommandMessage msg = state.cmforward.poll();
 
 			if (msg != null) {
-				if (msg.getHeader().getDestination() == state.client_id) {
+				if (msg.getHeader().hasDestination() || msg.getHeader().getDestination() == state.client_id) {
 					state.getEmon().sendClient(msg);
 				} else if (msg.getHeader().getDestination() >= state.minRange
 						&& msg.getHeader().getDestination() <= state.maxRange) {
@@ -399,7 +401,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 						}
 					}
 				} else {
-					
+					if(this.global.map.size() == 0){
+						FetchGlobalNeighbours();
+					}
 					for (EdgeInfo ei : this.global.map.values()) {
 						if (ei.getChannel() != null && ei.isActive()) {
 							ei.getChannel().writeAndFlush(msg);

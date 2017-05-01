@@ -28,12 +28,15 @@ public class ServerState {
 	private TaskList tasks;
 	private ServerElectionStatus status;
 	public int CPUthreshhold = 60;
+	public int maxHops = 10;
 	private int currentLeader; // current leader node id
 	private boolean isLeader;
+	public int client_id = 33;
+	public int secret = 123123;
 	
 	public int minRange = 30;
 	public int maxRange = 39;
-	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<>();
+	public static Hashtable<String, LocationList.Builder> hashTable = new Hashtable<String, LocationList.Builder>();
 	
 	private String dataPath;
 	private int currentTerm;
@@ -59,7 +62,7 @@ public class ServerState {
 			dataPath = Paths.get(".", "data").toAbsolutePath().normalize().toString();
 			System.out.println(dataPath);
 		}
-		wmforward = new LinkedBlockingDeque<WorkMessage>();
+		wmforward = new LinkedBlockingDeque<WorkMessage>(20);
 		incoming = new LinkedList<FileChunkObject>();
 
 		currentLeader = -1; // unknown

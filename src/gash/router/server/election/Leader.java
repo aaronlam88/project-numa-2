@@ -51,7 +51,6 @@ public class Leader implements Runnable{
 		System.out.println("leader true or not::  "+isLeader);
 
 		this.outboundEdges = new EdgeList();
-		new EdgeList();
 		
 		state.getStatus().setTotalVotesRecievedForThisTerm(0);
 
@@ -88,8 +87,6 @@ public class Leader implements Runnable{
 			System.out.println("inside sendAppendEntries method:: isleader true");
 			this.currentTerm=state.getStatus().getCurrentTerm();
 			state.getStatus().setTotalAppendEntrySuccessForThisTerm(0);
-
-			new EdgeMonitor(state);
 
 
 			for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
@@ -153,7 +150,7 @@ public class Leader implements Runnable{
 		ab.addEntries(Integer.toString(state.getStatus().getLastAplliedIndex()+1));
 		ab.addEntries("AppendEntry every heartbeat timeout");
 
-		ab.setLeaderCommit(state.getStatus().getCommitIndex());
+		ab.setLeaderCommit(state.getStatus().getCommitIndex()+1);
 
 		WorkMessage.Builder wm = WorkMessage.newBuilder();
 		wm.setHeader(hb);
@@ -190,6 +187,8 @@ public class Leader implements Runnable{
 		catch(Exception e){
 			logger.error("error in writing AppendEntry to leader node", e);
 		}
+
+		state.getStatus().setTotalAppendEntrySuccessForThisTerm(1);
 
 		return pr;
 	}

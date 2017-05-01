@@ -18,6 +18,17 @@ package gash.router.server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import gash.router.server.edges.EdgeList;
+import gash.router.server.edges.EdgeInfo;
+
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import gash.router.server.WorkInit;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -49,7 +60,7 @@ import gash.router.server.election.Follower;
 import gash.router.container.RoutingConf;
 import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.election.Candidate;
-import io.netty.util.ReferenceCountUtil;
+import io.netty.util.ReferenceCountUtil;	
 
 import pipe.appendEntries.AppendEntries.AppendEntriesResult;
 
@@ -83,7 +94,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			return;
 		}
 
-		PrintUtil.printWork(msg);
+		//PrintUtil.printWork(msg);
 
 		// TODO How can you implement this without if-else statements?
 
@@ -92,8 +103,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 			//System.out.println(Integer.toString(msg.getVrMsg().getCandidateId()));
 
 			 if (msg.hasBeat()) {
-				@SuppressWarnings("unused")
-				Heartbeat gb = msg.getBeat();
+				//@SuppressWarnings("unused")
+				//Heartbeat gb = msg.getBeat();
 
 				//System.out.println(msg.toString());
 				System.out.println("heartbeat from " + msg.getHeader().getNodeId());
@@ -106,7 +117,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// retrieve requestType and work accordingly
 				// if request send response; if ersponse update the count
 
-					System.out.println("recieved beat request");
+					System.out.println("recieved beat request from: " + msg.getHeader().getNodeId());
+					//System.out.println(msg.toString());
 
 
 				/*if (mt == 1) {
@@ -119,21 +131,32 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					BeatResponse.Builder bb = BeatResponse.newBuilder();
 					//bb.setState(sb);
 					bb.setResponse(2);
+					bb.setDestination(msg.getHeader().getNodeId());
 
 					Header.Builder hb = Header.newBuilder();
 					hb.setNodeId(state.getConf().getNodeId());
 					hb.setTime(System.currentTimeMillis());
 					//hb.setMaxHops(state.getConf().getTotalNodes());
-					hb.setDestination(msg.getHeader().getNodeId());
+					hb.setMaxHops(10);
+					hb.setDestination(-1);
 
 					WorkMessage.Builder wb = WorkMessage.newBuilder();
 					wb.setHeader(hb);
 					wb.setBeatReply(bb);
 					wb.setSecret(121316552);
 
-					channel.writeAndFlush(wb.build());
+					WorkMessage pr = wb.build();
+					System.out.println("heartbeat reply sent to: " + msg.getHeader().getNodeId());
+					//System.out.println(pr.toString()); 
 
+					//channel.writeAndFlush(pr);
+					forwardMessage(pr);
+					//state.wmforward.addLast(pr);
+
+					
 			}else if(msg.hasBeatReply()){
+
+				if(msg.getBeatReply().getDestination()==state.getConf().getNodeId()){
 
 					System.out.println(msg.toString());
 
@@ -148,9 +171,11 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						state.getStatus().setNodesThatRepliedBeatsInList(msg.getHeader().getNodeId());
 
 						int gtnd = state.getStatus().getTotalNodesDiscovered();
+						System.out.println("nodes discovered before adding one: " + gtnd);
 						state.getStatus().setTotalNodesDiscovered(gtnd + 1);
 
 					}
+				}
 			}else if (msg.hasAddEdge()) {
 				int id = msg.getAddEdge().getNodeToAdd();
 				String host = msg.getAddEdge().getHost();
@@ -200,19 +225,21 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				state.getStatus().setElectionTimeout(false);
 				state.getStatus().setHeartbeatTimeout(true);
 
-				if (receivedTerm >= thisTerm && receivedTerm >= thisLogTerm) {
+				if (receivedTerm > thisTerm && recievedLogTerm >= thisLogTerm) {
 					if (receivedLogIndex>=thisLogIndex) {
 
 						System.out.println("conditions in vote request is approvable by this server");
 
 						Header.Builder hb = Header.newBuilder();
 						hb.setNodeId(state.getConf().getNodeId());
-						hb.setDestination(msg.getVrMsg().getCandidateId());
+						hb.setDestination(-1);
+						hb.setMaxHops(10);
 						hb.setTime(System.currentTimeMillis());
 
 						Results.Builder rb = Results.newBuilder();
 						rb.setTerm(receivedTerm);
 						rb.setVoteGranted(true);
+						rb.setCandidateId(msg.getVrMsg().getCandidateId());
 
 						WorkMessage.Builder wm = WorkMessage.newBuilder();
 						wm.setHeader(hb);
@@ -232,17 +259,14 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							state.getStatus().setLeader(false);
 							state.getStatus().setIsVotedFor(true);
 
-							WorkMessage pr = wm.build();
-
-							System.out.println(pr.toString());
-
-							channel.writeAndFlush(pr);
-
+							state.wmforward.addLast(wm.build());
+							//channel.writeAndFlush(wm.build());
+							//forwardMessage(wm.build());
 						}
 
-						Follower follower = new Follower(state);
+						/*Follower follower = new Follower(state);
 						Thread th = new Thread(follower);
-						th.start();
+						th.start();*/
 
 					}
 				}
@@ -252,9 +276,9 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				// we received the majority count //declare the node leader //
 				// call AppendEntry messages
 				System.out.println("result of vote request recieved from node: " + msg.getHeader().getNodeId());
-				System.out.println("term voted for:" + msg.getVrResult().getTerm());
-				System.out.println("issucess: " + msg.getVrResult().getVoteGranted());
-
+				//System.out.println("term voted for:" + msg.getVrResult().getTerm());
+				//System.out.println("issucess: " + msg.getVrResult().getVoteGranted());
+				System.out.println(msg.toString());
 				// increase the vote count and decide whether it is the majority
 				// or not, if yes the ndeclare th enode to be leader
 				// and change the serverstate
@@ -265,65 +289,69 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 				boolean isSuccess = msg.getVrResult().getVoteGranted();
 				int currentTerm = state.getStatus().getCurrentTerm();
 
-				if (isSuccess) {
-					// update the count
-					int totalVotes = state.getStatus().getTotalVotesRecievedForThisTerm();
-					int totalNodes = state.getConf().getTotalNodes();
-					boolean majorityCount = false;
-					state.getStatus().setTotalVotesRecievedForThisTerm(totalVotes + 1);
+				if(msg.getVrResult().getCandidateId()==state.getConf().getNodeId()){
 
-					if (totalNodes % 2 == 0) {
-						if (totalVotes + 1 >= (totalNodes / 2) + 1) {
-							majorityCount = true;
+					if (isSuccess && votedForTerm>currentTerm) {
+						// update the count
+						int totalVotes = state.getStatus().getTotalVotesRecievedForThisTerm();
+						int totalNodes = state.getConf().getTotalNodes();
+						System.out.println("totalNodes received before deciding majority votes: " +totalNodes);
+						System.out.println("totalVotes received before deciding majority votes: " +totalVotes);
+						boolean majorityCount = false;
+						state.getStatus().setTotalVotesRecievedForThisTerm(totalVotes + 1);
+
+						if (totalNodes % 2 == 0) {
+							if (totalVotes + 1 >= (totalNodes / 2) + 1) {
+								majorityCount = true;
+							}
+						} else {
+							if (totalVotes + 1 >= (totalNodes / 2)) {
+
+								majorityCount = true;
+							}
 						}
-					} else {
-						if (totalVotes + 1 >= (totalNodes / 2)) {
 
-							majorityCount = true;
+						if (majorityCount) {
+
+							// we received the majority count //declare the node
+							// leader // call AppendEntry messages
+							System.out.println("we recieved majority of the count and declaring leader: nodeid: " + thisNode);
+							System.out.println("");
+							System.out.println("setting voted_for boolean as false");
+
+							state.getStatus().setIsVotedFor(false);
+							state.getStatus().setFollower(false);
+							state.getStatus().setCandidate(false);
+							state.getStatus().setLeader(true);
+							state.getStatus().setLeaderId(thisNode);
+							state.getStatus().setCurrentTerm(votedForTerm);
+							state.getStatus().setLastTermInLog(votedForTerm - 1);
+							state.getStatus().setElectionTimeout(false);
+							state.getStatus().setHeartbeatTimeout(false);
+
+							Leader lead = new Leader(state);
+							Thread t = new Thread(lead);
+							t.run();
+
+						} else {
+							// set a candidate state and start election again
+							System.out.println("we didnt recieve majority in the vote count");
+							state.getStatus().setFollower(false);
+							state.getStatus().setCandidate(true);
+							state.getStatus().setLeader(false);
+							state.getStatus().setLeaderId(0);
+							//state.getStatus().setTotalVotesRecievedForThisTerm(0);
+							state.getStatus().setElectionTimeout(true);
+							state.getStatus().setHeartbeatTimeout(false);
+							state.getStatus().setNextIndex(0);
+							state.getStatus().setPrevIndex(1);
+
+							/*Candidate cn = new Candidate(state);
+							Thread t = new Thread(cn);
+							t.run();*/
 						}
+
 					}
-
-					if (majorityCount) {
-
-						// we received the majority count //declare the node
-						// leader // call AppendEntry messages
-						System.out
-								.println("we recieved majority of the count and declaring leader: nodeid: " + thisNode);
-						System.out.println("");
-						System.out.println("setting voted_for boolean as false");
-
-						state.getStatus().setIsVotedFor(false);
-						state.getStatus().setFollower(false);
-						state.getStatus().setCandidate(false);
-						state.getStatus().setLeader(true);
-						state.getStatus().setLeaderId(thisNode);
-						state.getStatus().setCurrentTerm(votedForTerm);
-						state.getStatus().setLastTermInLog(votedForTerm - 1);
-						state.getStatus().setElectionTimeout(false);
-						state.getStatus().setHeartbeatTimeout(false);
-
-						Leader lead = new Leader(state);
-						Thread t = new Thread(lead);
-						t.run();
-
-					} else {
-						// set a candidate state and start election again
-						System.out.println("we didnt recieve majority in the vote count");
-						state.getStatus().setFollower(false);
-						state.getStatus().setCandidate(true);
-						state.getStatus().setLeader(false);
-						state.getStatus().setLeaderId(0);
-						state.getStatus().setTotalVotesRecievedForThisTerm(0);
-						state.getStatus().setElectionTimeout(true);
-						state.getStatus().setHeartbeatTimeout(false);
-						state.getStatus().setNextIndex(0);
-						state.getStatus().setPrevIndex(1);
-
-						Candidate cn = new Candidate(state);
-						Thread t = new Thread(cn);
-						t.run();
-					}
-
 				}
 
 			}
@@ -361,27 +389,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						// create file if there is none else append the entry
 
-						BufferedWriter bw = null;
-						FileWriter fw = null;
-
 						try {
-
-						/*	System.out.println("creating file");
-							File file = new File(state.getDbPath() + "/appendEntryLog.txt");
-
-							if (!file.exists()) {
-								file.createNewFile();
-							}
-
-							fw = new FileWriter(file.getAbsoluteFile(), true);
-							bw = new BufferedWriter(fw);
-
-							for (int i = 0; i < entry.size(); i++) {
-								bw.write(entry.get(i));
-								bw.write(",");
-							}
-							bw.write("\n");
-							bw.flush();*/
 
 
 							PrintWriter pw =new PrintWriter(new File(state.getDbPath()+"/appendEntryLog_" + state.getConf().getNodeId() +".txt"));
@@ -403,22 +411,8 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						} catch (Exception e) {
 							e.printStackTrace();
-						} finally {
-							try {
-								// TODO mark the success flag so that we know
-								// which response to send to the lcient back
-								if (bw != null)
-									bw.close();
-
-								if (fw != null)
-									fw.close();
-
-							} catch (Exception ex) {
-
-								ex.printStackTrace();
-
-							}
-						}
+						} 
+						
 
 						// if the log writing was successful return success msg
 						// or fail message
@@ -428,13 +422,17 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 
 						// send message back to leader who sent append entry
 						// message
-						hb.setDestination(msg.getAeMsg().getLeaderId());
-
+						hb.setDestination(-1);
+						hb.setMaxHops(10);
 						hb.setTime(System.currentTimeMillis());
 
 						AppendEntriesResult.Builder rb = AppendEntriesResult.newBuilder();
 						rb.setTerm(recievedTerm);
 						rb.setSuccess(true);
+						rb.setDestinationId(msg.getAeMsg().getLeaderId());
+						rb.setCommitIndex(receivedLogIndex);
+
+						// add destiniation as a field
 
 						WorkMessage.Builder wm = WorkMessage.newBuilder();
 						wm.setHeader(hb);
@@ -449,68 +447,93 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 							state.getStatus().setNextIndex(state.getStatus().getNextIndex() + 1);
 							state.getStatus().setElectionTimeout(false);
 							state.getStatus().setHeartbeatTimeout(true);
+
 							Follower follower = new Follower(state);
 							Thread th = new Thread(follower);
 							th.start();
 
 						}
 
-						channel.writeAndFlush(wm.build());
+						//channel.writeAndFlush(wm.build());
+						//forwardMessage(wm.build());
+						state.wmforward.addLast(wm.build());
 					}
 				}
 
 			} else if (msg.hasAeResult()) {
 				// TODO if more than n/2 +1 success then
 
-				System.out.println("append entry recieved");
-				System.out.println(msg.toString());
+				if(msg.getAeResult().getDestinationId() == state.getConf().getNodeId()){
 
-				System.out.println("AppendEntryResutl recived in workhandler");
-				System.out.println("result of Append Etnry recieved from node: " + msg.getHeader().getNodeId());
-				System.out.println("term appended entry for:" + msg.getAeResult().getTerm());
-				System.out.println("issucess: " + msg.getAeResult().getSuccess());
+					System.out.println("append entry recieved");
+					System.out.println(msg.toString());
 
-//				int followerNodeId = msg.getHeader().getNodeId();
-//				int thisNode = state.getConf().getNodeId();
-//				int successForTerm = msg.getAeResult().getTerm();
-//				int currentTerm = state.getStatus().getCurrentTerm();
-//				boolean isSuccess = msg.getAeResult().getSuccess();
-				int totalNodes = state.getConf().getTotalNodes();
-				int totalSuccess = state.getStatus().getTotalAppendEntrySuccessForThisTerm();
+					System.out.println("AppendEntryResutl recived in workhandler");
+					System.out.println("result of Append Etnry recieved from node: " + msg.getHeader().getNodeId());
+					System.out.println("term appended entry for:" + msg.getAeResult().getTerm());
+					System.out.println("issucess: " + msg.getAeResult().getSuccess());
+					System.out.println("commitIndex received: " +msg.getAeResult().getCommitIndex());
 
-				state.getStatus().setTotalAppendEntrySuccessForThisTerm(totalSuccess + 1);
+	//				int followerNodeId = msg.getHeader().getNodeId();
+	//				int thisNode = state.getConf().getNodeId();
+					int successForTerm = msg.getAeResult().getTerm();
+					int currentTerm = state.getStatus().getCurrentTerm();
+					int commitIn = msg.getAeResult().getCommitIndex();
+					int thisCommitIndex = state.getStatus().getCommitIndex();
 
-				boolean majorityCount = false;
+					boolean isSuccess = msg.getAeResult().getSuccess();
+					int totalNodes = state.getConf().getTotalNodes();
+					int totalSuccess = state.getStatus().getTotalAppendEntrySuccessForThisTerm();
 
-				if (totalNodes % 2 == 0) {
-					if (totalSuccess + 1 >= (totalNodes / 2) + 1) {
-						majorityCount = true;
+					if(isSuccess && successForTerm==currentTerm  && commitIn>thisCommitIndex ){
+
+						state.getStatus().setTotalAppendEntrySuccessForThisTerm(totalSuccess + 1);
+
+						boolean majorityCount = false;
+
+						if (totalNodes % 2 == 0) {
+							if (totalSuccess + 1 >= (totalNodes / 2) + 1) {
+								majorityCount = true;
+							}
+						} else {
+							if (totalSuccess + 1 >= (totalNodes / 2)) {
+								majorityCount = true;
+							}
+						}
+
+						if (!majorityCount) {
+
+							System.out.println("not majority success in AppendEntry");
+							state.getStatus().setFollower(false);
+							state.getStatus().setCandidate(true);
+							state.getStatus().setLeader(false);
+							state.getStatus().setLeaderId(0);
+							//state.getStatus().setTotalVotesRecievedForThisTerm(0);
+							state.getStatus().setElectionTimeout(true);
+							state.getStatus().setHeartbeatTimeout(false);
+							state.getStatus().setNextIndex(0);
+							state.getStatus().setPrevIndex(1);
+
+							Candidate cn = new Candidate(state);
+							Thread t = new Thread(cn);
+							t.run();
+
+						} else {
+							
+							System.out.println("recieved majority in appendentry");
+							state.getStatus().setFollower(false);
+							state.getStatus().setCandidate(false);
+							state.getStatus().setLeader(true);
+							state.getStatus().setLeaderId(state.getConf().getNodeId());
+							state.getStatus().setElectionTimeout(false);
+							state.getStatus().setHeartbeatTimeout(true);
+
+							state.getStatus().setLeaderId(msg.getHeader().getNodeId());
+
+							state.getStatus().setCommitIndex(commitIn);
+							//set log indexes
+						}
 					}
-				} else {
-					if (totalSuccess + 1 >= (totalNodes / 2)) {
-						majorityCount = true;
-					}
-				}
-
-				if (!majorityCount) {
-
-					System.out.println("not majority success in AppendEntry");
-					state.getStatus().setFollower(false);
-					state.getStatus().setCandidate(true);
-					state.getStatus().setLeader(false);
-					state.getStatus().setLeaderId(0);
-					state.getStatus().setTotalVotesRecievedForThisTerm(0);
-					state.getStatus().setElectionTimeout(true);
-					state.getStatus().setHeartbeatTimeout(false);
-					state.getStatus().setNextIndex(0);
-					state.getStatus().setPrevIndex(1);
-
-					Candidate cn = new Candidate(state);
-					Thread t = new Thread(cn);
-					t.run();
-
-				} else {
-					// set few terms
 				}
 
 			}
@@ -726,6 +749,49 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		return wb.build();
 	}
 
+	protected void forwardMessage(WorkMessage msg){
+		EdgeList outboundEdges = new EdgeList();
+		EdgeList inboundEdges = new EdgeList();
+
+		if (state.getConf().getRouting() != null) {
+			for (RoutingEntry e : state.getConf().getRouting()) {
+				outboundEdges.addNode(e.getId(), e.getHost(), e.getPort());
+			}
+		}
+
+		for (EdgeInfo ei : outboundEdges.getMap().values()) {
+				//System.out.println(ei.getChannel().toString());
+				if (ei.getChannel() != null && ei.isActive()) {
+					//ei.retry = 0;
+					ei.getChannel().writeAndFlush(msg);
+					//System.out.println("you did turn off");
+					//this.forever=false;
+				} else {
+					try {
+
+						inboundEdges.createIfNew(ei.getRef(), ei.getHost(), ei.getPort());
+						EventLoopGroup group = new NioEventLoopGroup();
+						WorkInit si = new WorkInit(state, false);
+						Bootstrap b = new Bootstrap();
+						b.group(group).channel(NioSocketChannel.class).handler(si);
+						b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
+						b.option(ChannelOption.TCP_NODELAY, true);
+						b.option(ChannelOption.SO_KEEPALIVE, true);
+
+						ChannelFuture channel = b.connect(ei.getHost(), ei.getPort()).syncUninterruptibly();
+
+						ei.setChannel(channel.channel());
+						ei.setActive(channel.channel().isActive());
+						//System.out.println("sending ahead: forwardMessage method");
+
+						ei.getChannel().writeAndFlush(msg);
+						
+					} catch (Exception e) {
+						logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
+					}
+				}
+			}
+	}
 	/**
 	 * a message was received from the server. Here we dispatch the message to
 	 * the client's thread pool to minimize the time it takes to process other
@@ -742,38 +808,13 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 		if (shouldDiscard(msg)) {
 			return;
 		} else if (msg.getHeader().getDestination() == state.getConf().getNodeId()) {
-
-
-			System.out.println("only for me message; i will handle it");
-			handleMessage(msg, ctx.channel());
-
-		} else if (msg.getHeader().getDestination() != state.getConf().getNodeId()
-				&& msg.getHeader().getDestination() != -1) {
-
-			state.wmforward.addLast(msg);
-
-		} else if (msg.getHeader().getDestination() == -1
-				&& msg.getHeader().getNodeId() != state.getConf().getNodeId()) {
-
-			//state.wmforward.addLast(msg);
-			System.out.println("message has been passed and now we will have a look at it");
-			handleMessage(msg, ctx.channel());
-			msg = rebuildMessage(msg);
-			state.wmforward.addLast(msg);
-
-		} else if (msg.getHeader().getDestination() == -1
-				&& msg.getHeader().getNodeId() == state.getConf().getNodeId()) {
-
-			System.out.println("i sent this message and i am not processign");
-			// ((WorkMessage) msg).release();
-			ReferenceCountUtil.release(msg);
-
 			handleMessage(msg, ctx.channel());
 		} else if (msg.getHeader().getDestination() == -1) {
 			handleMessage(msg, ctx.channel());
 			msg = rebuildMessage(msg);
-			state.wmforward.addLast(msg);
-
+			forwardMessage(msg); //option is not useful
+			//state.wmforward.addLast(msg);
+			//ctx.flush();
 		} else {
 			msg = rebuildMessage(msg);
 			state.wmforward.addLast(msg);

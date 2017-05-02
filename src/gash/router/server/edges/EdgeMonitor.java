@@ -52,7 +52,6 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	private EdgeInfo clientEdge;
 	private EdgeList globalNeighbour;
 
-	
 	private long dt = 2000;
 
 	private ServerState state;
@@ -75,16 +74,17 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		group = new NioEventLoopGroup();
 
 	}
-	
-		public void setGlobalNeighbours() {
+
+	public void setGlobalNeighbours() {
 
 		try {
-
-			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
-			// globalRedis.select(0);
-			globalRedis.set("3", state.getConf().getHostAddress() + ":" + state.getConf().getCommandPort());
-			System.out.println("---Redis updated---");
-			globalRedis.close();
+			if (state.getConf().getNodeId() == 31) {
+				Jedis globalRedis = new Jedis(state.getConf().getRedishost());
+				// globalRedis.select(0);
+				globalRedis.set("3", state.getConf().getHostAddress() + ":" + state.getConf().getCommandPort());
+				System.out.println("---Redis updated---");
+				globalRedis.close();
+			}
 		} catch (Exception e) {
 			System.out.println("---Problem with redis at updateing my leader---");
 		}
@@ -93,16 +93,16 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	public void FetchGlobalNeighbours() {
 		try {
-
-			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
-			String url = globalRedis.get("2");
-			System.out.println(url);
-			String host = url.split(":")[0];
-			int port = Integer.parseInt(url.split(":")[1]);
-			globalRedis.close();
-			globalNeighbour.clear();
-			globalNeighbour.addNode(2, host, port);
-
+			if (state.getConf().getNodeId() == 31) {
+				Jedis globalRedis = new Jedis(state.getConf().getRedishost());
+				String url = globalRedis.get("2");
+				System.out.println(url);
+				String host = url.split(":")[0];
+				int port = Integer.parseInt(url.split(":")[1]);
+				globalRedis.close();
+				globalNeighbour.clear();
+				globalNeighbour.addNode(2, host, port);
+			}
 		} catch (Exception e) {
 			System.out.println("---Problem with redis while fetching neighbour---");
 		}
@@ -233,12 +233,12 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	private void sendHeartBeat() {
 
-		System.out.println("getting the count of nodes that has been discovered before setting hopcount: " + state.getStatus().getTotalNodesDiscovered());
+		System.out.println("getting the count of nodes that has been discovered before setting hopcount: "
+				+ state.getStatus().getTotalNodesDiscovered());
 
-		//state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
+		// state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
 
 		System.out.println("before setting hopcount in createHB" + state.getConf().getTotalNodes());
-
 
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {

@@ -90,13 +90,13 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		try {
 
 			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
-			String url = globalRedis.get("6");
+			String url = globalRedis.get("2");
 			System.out.println(url);
 			String host = url.split(":")[0];
 			int port = Integer.parseInt(url.split(":")[1]);
 			globalRedis.close();
 			globalNeighbour.clear();
-			globalNeighbour.addNode(6, host, port);
+			globalNeighbour.addNode(2, host, port);
 
 		} catch (Exception e) {
 			System.out.println("---Problem with redis while fetching neighbour---");

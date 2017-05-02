@@ -153,7 +153,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		Header.Builder hb = Header.newBuilder();
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setTime(System.currentTimeMillis());
-
+		state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
 		hb.setMaxHops(10);
 		hb.setDestination(-1);
 

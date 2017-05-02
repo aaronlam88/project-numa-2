@@ -51,6 +51,8 @@ public class ServerElectionStatus{
 		this.totalAppendEntrySuccessForThisTerm=1;
 		//this.totalNodesDiscovered=1;
 		this.totalVotesRecievedForThisTerm=0;
+		this.electionTimeout=true;
+		this.heartbeatTimeout=false;
 	}
 	
 	public ArrayList<Integer> getNodesThatRepliedBeats(){

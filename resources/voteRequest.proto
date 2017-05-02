@@ -12,4 +12,5 @@ message VoteReq{
 message Results{
 	required int32 term=1;
 	required bool voteGranted=2;
+	required int32 candidateId=3;
 }

@@ -112,14 +112,14 @@ message ChunkLocation{
 
 
 message LocationList {
-	repeated ChunkLocation locationList = 1;
+  repeated ChunkLocation locationList = 1;
 }
 
 /**
  * message use to send log file between servers
  */
 message Log {
-	map<string, LocationList> hashTable = 1;
+  map<string, LocationList> hashTable = 1;
 }
 
 /** 
@@ -128,7 +128,7 @@ message Log {
  * and send the Log message back to sender
  */
 message GetLog {
-	optional bool isGet = 1;
+  optional bool isGet = 1;
 }
 
 /**
@@ -136,9 +136,9 @@ message GetLog {
  * trying to append filename, chunk_id, and chunkLocation to hashTable
  */
 message RequestAppendItem {
-	required string filename = 1;
-	required int32 chunk_id = 2;
-	required Node node = 3;
+  required string filename = 1;
+  required int32 chunk_id = 2;
+  required Node node = 3;
 }
 
 
@@ -147,7 +147,7 @@ message RequestAppendItem {
  * trying to remove filename key from hashTable
  */
 message RequestRemoveItem {
-	required string filename = 1;	
+  required string filename = 1; 
 }
 
 /**
@@ -155,9 +155,9 @@ message RequestRemoveItem {
  * append filename, chunk_id, and chunkLocation to hashTable
  */
 message AppendLogItem {
-	required string filename = 1;
-	required int64 chunk_id = 2;
-	required Node node = 3;
+  required string filename = 1;
+  required int64 chunk_id = 2;
+  required Node node = 3;
 }
 
 /**
@@ -165,7 +165,7 @@ message AppendLogItem {
  * remove filename key from hashTable
  */
 message RemoveLogItem {
-	required string filename = 1;
+  required string filename = 1;
 }
 
  

@@ -61,7 +61,7 @@ public class ServerState {
 			dataPath = Paths.get(".", "data").toAbsolutePath().normalize().toString();
 			System.out.println(dataPath);
 		}
-		wmforward = new LinkedBlockingDeque<WorkMessage>();
+		wmforward = new LinkedBlockingDeque<WorkMessage>(20);
 		incoming = new LinkedList<FileChunkObject>();
 
 		currentLeader = -1; // unknown

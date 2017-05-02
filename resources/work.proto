@@ -21,6 +21,7 @@ message Heartbeat {
 message BeatResponse{
   //required WorkState state=1;
   required int32 response=2 [default = 2]; // 2 - heartbeat response
+  required int32 destination=3;
 }
 
 message AddEdge{

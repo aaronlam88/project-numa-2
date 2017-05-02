@@ -67,7 +67,7 @@ public class Follower implements Runnable{
 							e.printStackTrace();
 						}
 					}
-				}, ThreadLocalRandom.current().nextInt(1000, 3000));  // start the process after this many ms, and chec kthe result
+				}, ThreadLocalRandom.current().nextInt(3000, 4000));  // start the process after this many ms, and chec kthe result
 
 			}
 			catch(Exception e){
@@ -138,7 +138,7 @@ public class Follower implements Runnable{
 							e.printStackTrace();
 						}
 					}
-				}, ThreadLocalRandom.current().nextInt(3000, 4000)); 
+				}, ThreadLocalRandom.current().nextInt(4000, 5000)); 
 
 			}
 			catch(Exception e){

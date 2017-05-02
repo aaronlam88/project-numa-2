@@ -17,6 +17,8 @@ package gash.router.server.edges;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
+import io.netty.channel.Channel;
 
 import gash.router.container.RoutingConf.RoutingEntry;
 import gash.router.server.FileChunkObject;
@@ -50,7 +52,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	private EdgeInfo clientEdge;
 	private EdgeList globalNeighbour;
 
-	private long dt = 3000;
+	
+	private long dt = 2000;
+
 	private ServerState state;
 
 	private EventLoopGroup group;
@@ -71,8 +75,9 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		group = new NioEventLoopGroup();
 
 	}
+	
+		public void setGlobalNeighbours() {
 
-	public void setGlobalNeighbours() {
 		try {
 
 			Jedis globalRedis = new Jedis(state.getConf().getRedishost());
@@ -149,13 +154,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		hb.setNodeId(state.getConf().getNodeId());
 		hb.setTime(System.currentTimeMillis());
 
-		System.out.println("getting the count of nodes that has been discovered before setting hopcount: "
-				+ state.getStatus().getTotalNodesDiscovered());
-
-		state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
-
-		System.out.println("before setting hopcount in createHB" + state.getConf().getTotalNodes());
-		hb.setMaxHops(state.getConf().getTotalNodes());
+		hb.setMaxHops(10);
 		hb.setDestination(-1);
 
 		WorkMessage.Builder wb = WorkMessage.newBuilder();
@@ -220,6 +219,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 		thread3.start();
 
 		while (state.keepWorking) {
+
 			try {
 				sendHeartBeat();
 				Thread.sleep(dt);
@@ -232,12 +232,21 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	}
 
 	private void sendHeartBeat() {
+
+		System.out.println("getting the count of nodes that has been discovered before setting hopcount: " + state.getStatus().getTotalNodesDiscovered());
+
+		//state.getConf().setTotalNodes(state.getStatus().getTotalNodesDiscovered());
+
+		System.out.println("before setting hopcount in createHB" + state.getConf().getTotalNodes());
+
+
 		for (EdgeInfo ei : this.outboundEdges.map.values()) {
 			if (ei.getChannel() != null && ei.isActive()) {
 				// System.out.println(
 				// "retrieving total nodes set as discovered in conf: " +
 				// state.getConf().getTotalNodes());
 				WorkMessage wm = createHB(ei);
+
 				ei.getChannel().writeAndFlush(wm);
 
 				state.getStatus().setTotalNodesDiscovered(1);
@@ -358,6 +367,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 									"error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 						}
 					}
+					// }
 				}
 			}
 		}
@@ -422,6 +432,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 					}
 					for (EdgeInfo ei : this.global.map.values()) {
 						if (ei.getChannel() != null && ei.isActive()) {
+
 							ei.getChannel().writeAndFlush(msg);
 						} else {
 							try {

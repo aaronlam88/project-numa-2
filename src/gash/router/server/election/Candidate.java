@@ -42,7 +42,7 @@ public class Candidate implements Runnable{
 	
 	private EdgeList outboundEdges;
 	private EdgeList inboundEdges;
-	private long dt = 3000;
+	private long dt = 4000;
 	private boolean forever = true;
 
 	public Candidate(ServerState state){
@@ -107,11 +107,10 @@ public class Candidate implements Runnable{
 			this.currentNodeId=state.getConf().getNodeId();
 
 			state.getStatus().setVotedFor(currentNodeId);
-			state.getStatus().setTotalVotesRecievedForThisTerm(state.getStatus().getTotalVotesRecievedForThisTerm()+1);
+			state.getStatus().setTotalVotesRecievedForThisTerm(1);
 
 			EdgeMonitor em = new EdgeMonitor(state);
 			//this.outboundEdges= em.getOutboundEdges();
-
 
 			for (EdgeInfo ei : this.outboundEdges.getMap().values()) {
 				//System.out.println(ei.getChannel().toString());
@@ -136,7 +135,8 @@ public class Candidate implements Runnable{
 						ei.setChannel(channel.channel());
 						ei.setActive(channel.channel().isActive());
 						System.out.println("reached here exactly where you turn the loop off");
-						
+						//WorkMessage wm = createVoteRequest();
+						//ei.getChannel().writeAndFlush(wm);
 					} catch (Exception e) {
 						logger.error("error in conecting to node " + ei.getRef() + " exception " + e.getMessage());
 					}
@@ -152,7 +152,7 @@ public class Candidate implements Runnable{
 		hb.setNodeId(this.state.getConf().getNodeId());
 		hb.setDestination(-1);
 		hb.setTime(System.currentTimeMillis());
-		hb.setMaxHops(state.getConf().getTotalNodes());
+		hb.setMaxHops(10);
 
 		VoteReq.Builder vr = VoteReq.newBuilder();
 		vr.setTerm(this.currentTerm+1);
@@ -162,7 +162,7 @@ public class Candidate implements Runnable{
 		vr.setLastLogTerm(this.state.getStatus().getLastTermInLog())	;
 
 		WorkMessage.Builder wm = WorkMessage.newBuilder();
-		wm.setPing(true);
+		//wm.setPing(true);
 		wm.setHeader(hb);
 		wm.setVrMsg(vr);
 		wm.setSecret(121316548);

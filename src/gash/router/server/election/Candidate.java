@@ -152,7 +152,7 @@ public class Candidate implements Runnable{
 		hb.setNodeId(this.state.getConf().getNodeId());
 		hb.setDestination(-1);
 		hb.setTime(System.currentTimeMillis());
-		hb.setMaxHops(10);
+		hb.setMaxHops(state.getConf().getTotalNodes()+5);
 
 		VoteReq.Builder vr = VoteReq.newBuilder();
 		vr.setTerm(this.currentTerm+1);

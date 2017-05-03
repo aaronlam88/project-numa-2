@@ -229,7 +229,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 					hb.setNodeId(state.getConf().getNodeId());
 					hb.setTime(System.currentTimeMillis());
 					//hb.setMaxHops(state.getConf().getTotalNodes());
-					hb.setMaxHops(10);
+					hb.setMaxHops(state.getConf().getTotalNodes()+5);
 					hb.setDestination(-1);
 
 					WorkMessage.Builder wb = WorkMessage.newBuilder();
@@ -327,7 +327,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						Header.Builder hb = Header.newBuilder();
 						hb.setNodeId(state.getConf().getNodeId());
 						hb.setDestination(-1);
-						hb.setMaxHops(10);
+						hb.setMaxHops(state.getConf().getTotalNodes()+5);
 						hb.setTime(System.currentTimeMillis());
 
 						Results.Builder rb = Results.newBuilder();
@@ -517,7 +517,7 @@ public class WorkHandler extends SimpleChannelInboundHandler<WorkMessage> {
 						// send message back to leader who sent append entry
 						// message
 						hb.setDestination(-1);
-						hb.setMaxHops(10);
+						hb.setMaxHops(state.getConf().getTotalNodes()+5);
 						hb.setTime(System.currentTimeMillis());
 
 						AppendEntriesResult.Builder rb = AppendEntriesResult.newBuilder();

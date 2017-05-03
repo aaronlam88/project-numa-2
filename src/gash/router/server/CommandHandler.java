@@ -294,7 +294,7 @@ class CommandMessageEventHandler implements EventHandler<CommandMessageEvent> {
 						fout = new FileOutputStream(file);
 						fout.write(req.getRwb().getChunk().getChunkData().toByteArray());
 						System.out.println("File written");
-						if (serverState.getConf().getNodeId() == 31) {
+						if (serverState.isLeader()) {
 							System.out.println("Yes leader");
 							// build <filename, LocationList> String filename =
 							// req.getRwb().getFilename();

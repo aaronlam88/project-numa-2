@@ -37,8 +37,9 @@ public class RoutingConf {
 	private int commandPort;
 	private String hostAddress = "0.0.0.0";
 	private String redishost = "localhost";
-	private int redisport = 4568;
+	private int nextcluster = 5;
 	private int workPort;
+	private int externalNode = 31;
 	private boolean internalNode = true;
 	private int heartbeatDt = 2000;
 	private List<RoutingEntry> routing;
@@ -134,12 +135,20 @@ public class RoutingConf {
 		this.redishost = redishost;
 	}
 
-	public int getRedisport() {
-		return redisport;
+	public int getNextcluster() {
+		return nextcluster;
 	}
 
-	public void setRedisport(int redisport) {
-		this.redisport = redisport;
+	public void setNextcluster(int nextcluster) {
+		this.nextcluster = nextcluster;
+	}
+
+	public int getExternalNode() {
+		return externalNode;
+	}
+
+	public void setExternalNode(int externalNode) {
+		this.externalNode = externalNode;
 	}
 
 	@XmlRootElement(name = "entry")

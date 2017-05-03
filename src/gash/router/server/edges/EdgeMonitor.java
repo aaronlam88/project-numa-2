@@ -78,7 +78,7 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 	public void setGlobalNeighbours() {
 
 		try {
-			if (state.getConf().getNodeId() == 31) {
+			if (state.getConf().getNodeId() == state.getConf().getExternalNode()) {
 				Jedis globalRedis = new Jedis(state.getConf().getRedishost());
 				// globalRedis.select(0);
 				globalRedis.set("3", state.getConf().getHostAddress() + ":" + state.getConf().getCommandPort());
@@ -93,15 +93,15 @@ public class EdgeMonitor implements EdgeListener, Runnable {
 
 	public void FetchGlobalNeighbours() {
 		try {
-			if (state.getConf().getNodeId() == 31) {
+			if (state.getConf().getNodeId() == state.getConf().getExternalNode()) {
 				Jedis globalRedis = new Jedis(state.getConf().getRedishost());
-				String url = globalRedis.get("2");
+				String url = globalRedis.get(Integer.toString(state.getConf().getNextcluster()));
 				System.out.println(url);
 				String host = url.split(":")[0];
 				int port = Integer.parseInt(url.split(":")[1]);
 				globalRedis.close();
 				globalNeighbour.clear();
-				globalNeighbour.addNode(2, host, port);
+				globalNeighbour.addNode(state.getConf().getNextcluster(), host, port);
 			}
 		} catch (Exception e) {
 			System.out.println("---Problem with redis while fetching neighbour---");
